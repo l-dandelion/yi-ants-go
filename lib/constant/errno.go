@@ -2,6 +2,14 @@ package constant
 
 const (
 	/*
+	 * common error
+	 * 通用错误
+	 */
+
+	//args error(参数错误)
+	ERR_ARGS = 10001
+
+	/*
 	 * crawl error
 	 * 抓取错误
 	 */
@@ -37,4 +45,15 @@ const (
 	ERR_NEW_ANALYZER_FAIL = 30008
 	//new pipeline error(新建处理管道失败)
 	ERR_NEW_PIPELINE = 30009
+
+	/*
+	 * scheduler error
+	 */
+
+	//scheduler args error(调度器参数错误)
+	ERR_SCHEDULER_ARGS = 40001
+	//get primary domian fail
+	ERR_GET_PRIMARY_DOMAIN = 40002
+	//get scheduler summary string fail
+	ERR_GET_SCHEDULER_SUMMARY = 40003
 )

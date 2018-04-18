@@ -1,6 +1,13 @@
 package constant
 
 var gmsgMap = map[int]string{
+	/*
+	 * common error
+	 * 通用错误
+	 */
+
+	//args error(参数错误)
+	ERR_ARGS: "Args Error(参数错误)",
 
 	/*
 	 * crawl error
@@ -38,6 +45,17 @@ var gmsgMap = map[int]string{
 	ERR_NEW_ANALYZER_FAIL: "New Analyzer Fail(新建解析器失败)",
 	//new pipeline error(新建处理管道失败)
 	ERR_NEW_PIPELINE: "New Pipeline Fail",
+
+	/*
+	 * scheduler error
+	 */
+
+	//scheduler args error(调度器参数错误)
+	ERR_SCHEDULER_ARGS: "Scheduler Args Error",
+	//get primary domian fail
+	ERR_GET_PRIMARY_DOMAIN: "Get Primary Domain Fail",
+	//get scheduler summary string fail
+	ERR_GET_SCHEDULER_SUMMARY: "Get Scheduler Summary String Fail",
 }
 
 func GetErrMsg(errno int) string {
