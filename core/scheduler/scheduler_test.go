@@ -286,7 +286,7 @@ func TestSchedSimple(t *testing.T) {
 			break
 		}
 	}
-	if yierr = sched.Stop(); err != nil {
+	if yierr = sched.Stop(); yierr != nil {
 		t.Fatalf("An error occurs when stopping scheduler: %s",
 			yierr)
 	}

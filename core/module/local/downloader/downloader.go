@@ -31,7 +31,7 @@ func New(
 
 	return &myDownloader{
 		ModuleInternal: moduleBase,
-		httpClient:client,
+		httpClient:     client,
 	}, nil
 }
 

@@ -20,31 +20,30 @@ func (sched *myScheduler) sendReq(req *data.Request) bool {
 	}
 	httpReq := req.HTTPReq()
 	if httpReq == nil {
-		log.Warnln("Ignore the request! Its HTTP request is invalid!")
+		//log.Warnln("Ignore the request! Its HTTP request is invalid!")
 		return false
 	}
 	reqURL := httpReq.URL
 	if reqURL == nil {
-		log.Warnln("Ignore the request! Its URL is invalid!")
+		//log.Warnln("Ignore the request! Its URL is invalid!")
 		return false
 	}
 	scheme := strings.ToLower(reqURL.Scheme)
 	if scheme != "http" && scheme != "https" {
-		log.Warnf("Ignore the request! Its URL scheme is %q, but should be %q or %q. (URL: %s)\n", scheme, "http", "https", reqURL)
+		//log.Warnf("Ignore the request! Its URL scheme is %q, but should be %q or %q. (URL: %s)\n", scheme, "http", "https", reqURL)
 		return false
 	}
 	if v := sched.urlMap.Get(reqURL.String()); v != nil {
-		log.Warnf("Ignore the request! Its URL is repeated. (URL: %s)\n", reqURL)
+		//log.Warnf("Ignore the request! Its URL is repeated. (URL: %s)\n", reqURL)
 		return false
 	}
 	pd, _ := getPrimaryDomain(httpReq.Host)
 	if sched.acceptedDomainMap.Get(pd) == nil {
-		log.Warnf("Ignore the request! Its host %q is not in accepted primary domain map. (URL: %s)\n",
-			httpReq.Host, reqURL)
+		//log.Warnf("Ignore the request! Its host %q is not in accepted primary domain map. (URL: %s)\n", httpReq.Host, reqURL)
 		return false
 	}
 	if req.Depth() > sched.maxDepth {
-		log.Warnf("Ignore the request! Its depth %d is greater than %d. (URL: %s)\n", req.Depth(), sched.maxDepth, reqURL)
+		//log.Warnf("Ignore the request! Its depth %d is greater than %d. (URL: %s)\n", req.Depth(), sched.maxDepth, reqURL)
 		return false
 	}
 	go func(req *data.Request) {
