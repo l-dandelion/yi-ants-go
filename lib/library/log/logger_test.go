@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"gopcp.v2/helper/log/base"
+	"github.com/l-dandelion/yi-ants-go/lib/library/log/base"
 )
 
 func TestLogger(t *testing.T) {

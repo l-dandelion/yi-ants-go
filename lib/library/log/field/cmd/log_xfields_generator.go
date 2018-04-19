@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"gopcp.v2/helper/log/base"
+	"github.com/l-dandelion/yi-ants-go/lib/library/log/base"
 )
 
 // field_decl_template 代表日志字段类型的声明的内容模板。

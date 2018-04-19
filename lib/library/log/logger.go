@@ -6,8 +6,8 @@ import (
 	"os"
 	"sync"
 
-	"gopcp.v2/helper/log/base"
-	"gopcp.v2/helper/log/logrus"
+	"github.com/l-dandelion/yi-ants-go/lib/library/log/base"
+	"github.com/l-dandelion/yi-ants-go/lib/library/log/logrus"
 )
 
 // LoggerCreator 代表日志记录器的创建器。

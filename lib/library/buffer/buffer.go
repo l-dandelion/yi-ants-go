@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
-
-	"gopcp.v2/chapter6/webcrawler/errors"
+	"errors"
 )
 
 // Buffer 代表FIFO的缓冲器的接口类型。
@@ -44,7 +43,7 @@ type myBuffer struct {
 func NewBuffer(size uint32) (Buffer, error) {
 	if size == 0 {
 		errMsg := fmt.Sprintf("illegal size for buffer: %d", size)
-		return nil, errors.NewIllegalParameterError(errMsg)
+		return nil, errors.New(errMsg)
 	}
 	return &myBuffer{
 		ch: make(chan interface{}, size),

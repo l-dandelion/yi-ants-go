@@ -4,8 +4,8 @@ import (
 	"io"
 	"os"
 
-	"gopcp.v2/helper/log/base"
-	"gopcp.v2/helper/log/field"
+	"github.com/l-dandelion/yi-ants-go/lib/library/log/base"
+	"github.com/l-dandelion/yi-ants-go/lib/library/log/field"
 
 	"github.com/Sirupsen/logrus"
 )

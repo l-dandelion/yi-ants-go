@@ -5,7 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"gopcp.v2/chapter6/webcrawler/errors"
+	"errors"
 )
 
 // Pool 代表数据缓冲池的接口类型。
@@ -59,11 +59,11 @@ func NewPool(
 	maxBufferNumber uint32) (Pool, error) {
 	if bufferCap == 0 {
 		errMsg := fmt.Sprintf("illegal buffer cap for buffer pool: %d", bufferCap)
-		return nil, errors.NewIllegalParameterError(errMsg)
+		return nil, errors.New(errMsg)
 	}
 	if maxBufferNumber == 0 {
 		errMsg := fmt.Sprintf("illegal max buffer number for buffer pool: %d", maxBufferNumber)
-		return nil, errors.NewIllegalParameterError(errMsg)
+		return nil, errors.New(errMsg)
 	}
 	bufCh := make(chan Buffer, maxBufferNumber)
 	buf, _ := NewBuffer(bufferCap)
