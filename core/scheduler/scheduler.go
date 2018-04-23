@@ -15,6 +15,7 @@ import (
 )
 
 type Scheduler interface {
+	Name() string
 	Init(RequestArgs, DataArgs, ModuleArgs) *constant.YiError
 	Start(initialReqs []*data.Request) *constant.YiError
 	Pause() *constant.YiError
@@ -24,6 +25,14 @@ type Scheduler interface {
 	ErrorChan() <-chan *constant.YiError // get error
 	Idle() bool                          // check whether the job is finished
 	Summary() SchedSummary               // get schduler summary
+	SendReq(req *data.Request) bool
+}
+
+/*
+ * create an instance of interface Scheduler by name
+ */
+func New(name string) Scheduler {
+	return &myScheduler{name: name}
 }
 
 /*
@@ -37,6 +46,7 @@ func NewScheduler() Scheduler {
  * implementation of interface Scheduler
  */
 type myScheduler struct {
+	name              string
 	maxDepth          uint32             // the max crawl depth
 	acceptedDomainMap cmap.ConcurrentMap // accepted domain
 	reqBufferPool     buffer.Pool        // request buffer pool
@@ -52,6 +62,13 @@ type myScheduler struct {
 	downloader        module.Downloader  // downloader
 	analyzer          module.Analyzer    // analyzer
 	pipeline          module.Pipeline    // pipeline
+}
+
+/*
+ * get scheduler name
+ */
+func (sched *myScheduler) Name() string {
+	return sched.name
 }
 
 /*
@@ -281,7 +298,7 @@ func (sched *myScheduler) ErrorChan() <-chan *constant.YiError {
 			}
 			//paused
 			if sched.Status() == constant.RUNNING_STATUS_PAUSED {
-				time.Sleep(100*time.Millisecond)
+				time.Sleep(100 * time.Millisecond)
 				continue
 			}
 			datum, err := errBuffer.Get()

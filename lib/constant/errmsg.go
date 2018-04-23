@@ -56,6 +56,39 @@ var gmsgMap = map[int]string{
 	ERR_GET_PRIMARY_DOMAIN: "Get Primary Domain Fail",
 	//get scheduler summary string fail
 	ERR_GET_SCHEDULER_SUMMARY: "Get Scheduler Summary String Fail",
+
+	/*
+	 * spider error
+	 */
+
+	// new spider fail
+	ERR_SPIDER_NEW: "New Spider Fail",
+	// not found spider
+	ERR_SPIDER_NOT_FOUND: "Spider Not Found",
+
+	/*
+	 * rpc error
+	 */
+
+	// dial fail
+	ERR_RPC_CLIENT_DIAL: "RPC Client Dial Fail",
+	// join cluster fail
+	ERR_JOIN_CLUSTER: "Join Cluster Fail",
+	// connect fail
+	ERR_RPC_CLIENT_CONNECT: "RPC Client Connect Fail",
+	// distribute fail
+	ERR_RPC_CLIETN_DISTRIBUTE: "RPC Client Distribute Request Fail",
+	// RPC call fail
+	ERR_RPC_CALL: "RPC Call Fail",
+
+	/*
+	 * crawler error
+	 */
+
+	// new crawler fail
+	ERR_CRAWLER_NEW: "New Crawler Fail",
+	// pop request fail
+	ERR_REQUEST_POP: "Pop Request Fail",
 }
 
 func GetErrMsg(errno int) string {

@@ -56,4 +56,37 @@ const (
 	ERR_GET_PRIMARY_DOMAIN = 40002
 	//get scheduler summary string fail
 	ERR_GET_SCHEDULER_SUMMARY = 40003
+
+	/*
+	 * spider error
+	 */
+
+	// new spider fail
+	ERR_SPIDER_NEW = 50001
+	// not found spider
+	ERR_SPIDER_NOT_FOUND = 50002
+
+	/*
+	 * rpc error
+	 */
+
+	// dial fail
+	ERR_RPC_CLIENT_DIAL = 60001
+	// join cluster fail
+	ERR_JOIN_CLUSTER = 60002
+	// connect fail
+	ERR_RPC_CLIENT_CONNECT = 60003
+	// distribute fail
+	ERR_RPC_CLIETN_DISTRIBUTE = 60004
+	// RPC call fail
+	ERR_RPC_CALL = 60005
+
+	/*
+	 * crawler error
+	 */
+
+	// new crawler fail
+	ERR_CRAWLER_NEW = 70001
+	// pop request fail
+	ERR_REQUEST_POP = 70002
 )

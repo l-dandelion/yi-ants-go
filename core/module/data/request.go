@@ -12,10 +12,33 @@ import (
  * extra: additional information(used for context)
  */
 type Request struct {
-	httpReq *http.Request          // the http request
-	depth   uint32                 // crawl depth
-	proxy   string                 // use proxy if not empty
-	Extra   map[string]interface{} // additional information(used for context)
+	nodeName   string
+	spiderName string
+	httpReq    *http.Request          // the http request
+	depth      uint32                 // crawl depth
+	proxy      string                 // use proxy if not empty
+	Extra      map[string]interface{} // additional information(used for context)
+}
+
+/*
+ * get spider name
+ */
+func (req *Request) SpiderName() string {
+	return req.spiderName
+}
+
+/*
+ * get node name
+ */
+func (req *Request) NodeName() string {
+	return req.nodeName
+}
+
+/*
+ * set node name
+ */
+func (req *Request) SetNodeName(nodeName string) {
+	req.nodeName = nodeName
 }
 
 /*
