@@ -24,7 +24,7 @@ func GenFuncFromStr(sourceStr, funcName string) (interface{}, error) {
 func GenFuncFromSource(filePath, funcName string) (interface{}, error) {
 	fileName := fmt.Sprintf("%d", rand.Uint64()) + ".so"
 	dirPath := path
-	cmd := exec.Command("go", "-o", dirPath + "/" + fileName, "-buildmode=plugin", "build", filePath)
+	cmd := exec.Command("go", "build", "-o", dirPath + "/" + fileName, "-buildmode=plugin", filePath)
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err
