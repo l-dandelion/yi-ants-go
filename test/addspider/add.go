@@ -7,10 +7,12 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/action"
 	"fmt"
 	"encoding/gob"
+	"github.com/l-dandelion/yi-ants-go/lib/constant"
 )
 
 
 func main() {
+	constant.RunMode = "debug"
 	ip := "127.0.0.1"
 	port := 8200
 	client, err := rpc.Dial("tcp", ip+":"+strconv.Itoa(port))
@@ -25,7 +27,7 @@ func main() {
 	gob.Register(sp)
 
 	req.Spider = sp
-	resp := &action.RpcBase{}
+	resp := &action.RpcError{}
 	err = client.Call("RpcServer.FirstAddSpider", req, resp)
 	if err != nil {
 		log.Panic(err)

@@ -7,6 +7,7 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/node"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
 	"github.com/l-dandelion/yi-ants-go/lib/library/log"
+	"github.com/l-dandelion/yi-ants-go/lib/library/pool"
 	"sync"
 	"time"
 )
@@ -18,13 +19,18 @@ type Distributer struct {
 	Cluster   cluster.Cluster
 	RpcClient action.RpcClientAnts
 	Node      node.Node
+	MaxThread int
+	pool      *pool.Pool
 }
 
-func NewDistributer(node node.Node, cluster cluster.Cluster, rpcClient action.RpcClientAnts) *Distributer {
+func NewDistributer(mnode node.Node, cluster cluster.Cluster, rpcClient action.RpcClientAnts) *Distributer {
 	return &Distributer{
 		Status:    constant.RUNNING_STATUS_STOPPED,
 		Cluster:   cluster,
 		RpcClient: rpcClient,
+		Node:      mnode,
+		MaxThread: 10,
+		pool:      pool.NewPool(10),
 	}
 }
 
@@ -108,13 +114,32 @@ func (this *Distributer) Run() {
 			time.Sleep(1 * time.Second)
 			continue
 		}
-		request, err := this.Node.PopRequest()
-		if err != nil {
-			log.Errorf("Distribute Error: %s", err)
-		}
-		this.Distribute(request)
-		this.RpcClient.Distribute(request.NodeName(), request)
+		this.pool.Add()
+		go func() {
+			defer this.pool.Done()
+			request, err := this.Node.PopRequest()
+			if err != nil {
+				log.Errorf("Distribute Error: %s", err)
+				return
+			}
+			if constant.RunMode == "debug" {
+				log.Infof("distribute request: %v thread: %d", request, this.pool.Num())
+			}
+			//ok, err := this.Node.HasRequest(request)
+			//if err != nil {
+			//	log.Errorf("Distribute Error: %s", err)
+			//	return
+			//}
+			//if ok {
+			//	log.Warnf("Distribute Warn: Request is reapted. (Url: %s)", request.HTTPReq().URL)
+			//	return
+			//}
+			//this.RpcClient.SignRequest(request)
+			this.Distribute(request)
+			this.RpcClient.Distribute(request.NodeName(), request)
+		}()
 	}
+	log.Info("Stop distributer.")
 }
 
 func (this *Distributer) Distribute(request *data.Request) {

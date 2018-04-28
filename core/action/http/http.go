@@ -8,7 +8,13 @@ import (
 	"github.com/l-dandelion/yi-ants-go/lib/library/log"
 	"net/http"
 	"time"
+	"github.com/l-dandelion/yi-ants-go/lib/constant"
 )
+
+type Result struct {
+	Yierr *constant.YiError
+	Content interface{}
+}
 
 type Router struct {
 	node        node.Node
@@ -33,6 +39,7 @@ func NewRouter(node node.Node, cluster cluster.Cluster, reporter, distributer ac
 	mux["/cluster"] = router.Cluster
 	mux["/spiders"] = router.Spiders
 	mux["/crawl"] = router.Crawl
+	mux["/spiderstatus"] = router.SpiderStatus
 	return router
 }
 
@@ -82,6 +89,9 @@ func (this *Router) Crawl(w http.ResponseWriter, r *http.Request) {
 	startResult.Time = now
 	startResult.Spider = spiderName
 	yierr := this.rpcClient.StartSpider(spiderName)
+	if yierr == nil {
+		startResult.Success = true
+	}
 	startResult.Yierr = yierr
 	encoder, err := json.Marshal(startResult)
 	if err != nil {
@@ -92,6 +102,21 @@ func (this *Router) Crawl(w http.ResponseWriter, r *http.Request) {
 
 func (this *Router) Cluster(w http.ResponseWriter, r *http.Request) {
 	encoder, err := json.Marshal(this.cluster.GetClusterInfo())
+	if err != nil {
+		log.Error(err)
+	}
+	w.Write(encoder)
+}
+
+func (this *Router) SpiderStatus(w http.ResponseWriter, r *http.Request){
+	r.ParseForm()
+	spiderName := r.Form["spider"][0]
+	spiderStatus, yierr := this.node.GetSpiderStatus(spiderName)
+	result := &Result{
+		Yierr: yierr,
+		Content: spiderStatus,
+	}
+	encoder, err := json.Marshal(result)
 	if err != nil {
 		log.Error(err)
 	}

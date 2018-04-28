@@ -15,7 +15,7 @@ import (
 )
 
 type Scheduler interface {
-	Name() string
+	SchedulerName() string
 	Init(RequestArgs, DataArgs, ModuleArgs) *constant.YiError
 	Start(initialReqs []*data.Request) *constant.YiError
 	Pause() *constant.YiError
@@ -26,6 +26,9 @@ type Scheduler interface {
 	Idle() bool                          // check whether the job is finished
 	Summary() SchedSummary               // get schduler summary
 	SendReq(req *data.Request) bool
+	SetDistributeQueue(pool buffer.Pool)
+	SignRequest(request *data.Request)
+	HasRequest(request *data.Request) bool
 }
 
 /*
@@ -62,12 +65,13 @@ type myScheduler struct {
 	downloader        module.Downloader  // downloader
 	analyzer          module.Analyzer    // analyzer
 	pipeline          module.Pipeline    // pipeline
+	distributeQeueu   buffer.Pool
 }
 
 /*
  * get scheduler name
  */
-func (sched *myScheduler) Name() string {
+func (sched *myScheduler) SchedulerName() string {
 	return sched.name
 }
 
@@ -168,12 +172,12 @@ func (sched *myScheduler) Start(initialReqs []*data.Request) (yierr *constant.Yi
 		}
 		sched.statusLock.Unlock()
 	}()
-	log.Info("Check initial HTTP request list...")
-	if initialReqs == nil {
-		yierr = constant.NewYiErrorf(constant.ERR_CRAWL_SCHEDULER, "Nil initial HTTP request list")
-		return
-	}
-	log.Info("Initial HTTP request list is valid.")
+	//log.Info("Check initial request list...")
+	//if initialReqs == nil {
+	//	yierr = constant.NewYiErrorf(constant.ERR_CRAWL_SCHEDULER, "Nil initial HTTP request list")
+	//	return
+	//}
+	//log.Info("Initial HTTP request list is valid.")
 
 	log.Info("Get the primary domain...")
 
@@ -454,4 +458,25 @@ func (sched *myScheduler) Status() int8 {
 	sched.statusLock.RLock()
 	defer sched.statusLock.RUnlock()
 	return sched.status
+}
+
+/*
+ * set distribute queue
+ */
+func (sched *myScheduler) SetDistributeQueue(pool buffer.Pool) {
+	sched.distributeQeueu = pool
+}
+
+/*
+ * sign request
+ */
+func (sched *myScheduler) SignRequest(req *data.Request) {
+	sched.urlMap.Put(req.HTTPReq().URL.String(), struct{}{})
+}
+
+/*
+ * check whether it has request
+ */
+func (sched *myScheduler) HasRequest(req *data.Request) bool {
+	return sched.urlMap.Get(req.HTTPReq().URL.String()) != nil
 }

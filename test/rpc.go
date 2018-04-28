@@ -12,6 +12,7 @@ import (
 	"net/http"
 	http2 "github.com/l-dandelion/yi-ants-go/core/action/http"
 	"github.com/l-dandelion/yi-ants-go/lib/library/log"
+	"github.com/l-dandelion/yi-ants-go/lib/constant"
 )
 
 func solve(isFirst bool, port int, httpPort int) {
@@ -29,6 +30,7 @@ func solve(isFirst bool, port int, httpPort int) {
 	distributer := watcher.NewDistributer(mnode, mcluster, rpcClient)
 	rpcClient.Start()
 	rpc.NewRpcServer(mnode, mcluster, port, rpcClient, distributer)
+	distributer.Start()
 
 	router := http2.NewRouter(mnode, mcluster, nil, distributer, rpcClient)
 
@@ -57,8 +59,7 @@ func solve(isFirst bool, port int, httpPort int) {
 }
 
 func main() {
+	constant.RunMode = "debug"
 	solve(true, 8200, 9200)
-	time.Sleep(5*time.Second)
-	solve(false, 8300, 9300)
-	time.Sleep(1000*time.Second)
+	time.Sleep(100000*time.Second)
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"encoding/gob"
 	"github.com/l-dandelion/yi-ants-go/core/module"
 	"github.com/l-dandelion/yi-ants-go/core/module/data"
 	"github.com/l-dandelion/yi-ants-go/core/module/local/analyzer"
@@ -11,6 +12,9 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/module/local/pipeline"
 	"github.com/l-dandelion/yi-ants-go/core/scheduler"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
+	"github.com/l-dandelion/yi-ants-go/lib/library/buffer"
+	"github.com/l-dandelion/yi-ants-go/lib/library/log"
+	"github.com/l-dandelion/yi-ants-go/lib/library/plugin"
 )
 
 type SpiderStatus struct {
@@ -27,22 +31,33 @@ type SpiderStatus struct {
 type Spider interface {
 	scheduler.Scheduler
 	SpiderName() string
-	NotFirstStart() *constant.YiError
-	FirstStart() *constant.YiError
+	NotFirstStart(distributeQueue buffer.Pool) *constant.YiError
+	FirstStart(distributeQueue buffer.Pool) *constant.YiError
 	AcceptedRequest(req *data.Request) bool
 	SpiderStatus() *SpiderStatus
+	GetInitReqs() []*data.Request
+	InitSchduler() *constant.YiError
+	SetSched(scheduler.Scheduler)
+	GetSched() scheduler.Scheduler
+	Copy() Spider
+}
+
+func (spider *mySpider) GetInitReqs() []*data.Request {
+	return spider.InitialReqs
 }
 
 type mySpider struct {
 	scheduler.Scheduler
-	name            string
-	RequestArgs     scheduler.RequestArgs
-	DataArgs        scheduler.DataArgs
-	RespParsers     []module.ParseResponse
-	ItemProccessors []module.ProcessItem
-	InitialReqs     []*data.Request
-	StartTime       time.Time
-	EndTime         time.Time
+	Name        string
+	RequestArgs scheduler.RequestArgs
+	DataArgs    scheduler.DataArgs
+	//RespParsers     []module.ParseResponse
+	//ItemProccessors []module.ProcessItem
+	StrGenParsers    string
+	StrGenProcessors string
+	InitialReqs      []*data.Request
+	StartTime        time.Time
+	EndTime          time.Time
 }
 
 /*
@@ -53,14 +68,16 @@ func New(name string,
 	dataArgs scheduler.DataArgs,
 	initialUrls []string,
 	initialReqs []*data.Request,
-	parsers []module.ParseResponse,
-	processors []module.ProcessItem) (Spider, *constant.YiError) {
+	strGenParsers string,
+	strGenProcessors string) (Spider, *constant.YiError) {
 	spider := &mySpider{
-		name:            name,
-		RespParsers:     parsers,
-		ItemProccessors: processors,
-		DataArgs:        dataArgs,
-		RequestArgs:     requestArgs,
+		Name:             name,
+		StrGenParsers:    strGenParsers,
+		StrGenProcessors: strGenProcessors,
+		//RespParsers:     parsers,
+		//ItemProccessors: processors,
+		DataArgs:    dataArgs,
+		RequestArgs: requestArgs,
 	}
 	//yierr := spider.initSchduler()
 	//if yierr != nil {
@@ -74,6 +91,9 @@ func New(name string,
 				return nil, constant.NewYiErrore(constant.ERR_SPIDER_NEW, err)
 			}
 			req := data.NewRequest(httpReq)
+			if constant.RunMode == "debug" {
+				log.Infof("%v", req)
+			}
 			spider.InitialReqs = append(spider.InitialReqs, req)
 		}
 	}
@@ -86,23 +106,34 @@ func New(name string,
 }
 
 func (spider *mySpider) SpiderName() string {
-	return spider.name
+	return spider.Name
 }
 
 /*
  * initialize scheduler
  */
-func (spider *mySpider) initSchduler() *constant.YiError {
-	sched := scheduler.New(spider.name)
+func (spider *mySpider) InitSchduler() *constant.YiError {
+	sched := scheduler.New(spider.Name)
+	spider.Scheduler = sched
 	downloader, yierr := downloader.New("D1", genHTTPClient(), module.CalculateScoreSimple)
 	if yierr != nil {
 		return yierr
 	}
-	analyzer, yierr := analyzer.New("A1", spider.RespParsers, module.CalculateScoreSimple)
+	f, err := plugin.GenFuncFromStr(spider.StrGenParsers, "GenParsers")
+	if err != nil {
+		return constant.NewYiErrore(constant.ERR_SPIDER_NEW, err)
+	}
+	parsers := f.(func() []module.ParseResponse)()
+	analyzer, yierr := analyzer.New("A1", parsers, module.CalculateScoreSimple)
 	if yierr != nil {
 		return yierr
 	}
-	pipeline, yierr := pipeline.New("P1", spider.ItemProccessors, module.CalculateScoreSimple)
+	f, err = plugin.GenFuncFromStr(spider.StrGenProcessors, "GenProcessors")
+	if err != nil {
+		return constant.NewYiErrore(constant.ERR_SPIDER_NEW, err)
+	}
+	processors := f.(func() []module.ProcessItem)()
+	pipeline, yierr := pipeline.New("P1", processors, module.CalculateScoreSimple)
 	moduleArgs := scheduler.ModuleArgs{
 		Downloader: downloader,
 		Analyzer:   analyzer,
@@ -112,14 +143,18 @@ func (spider *mySpider) initSchduler() *constant.YiError {
 	if yierr != nil {
 		return yierr
 	}
-	spider.Scheduler = sched
 	return nil
+}
+
+func (spider *mySpider) InitDistributeQueue(distributerQueue buffer.Pool) {
+	spider.Scheduler.SetDistributeQueue(distributerQueue)
 }
 
 /*
  * start a spider
  */
-func (spider *mySpider) NotFirstStart() *constant.YiError {
+func (spider *mySpider) NotFirstStart(distributeQueue buffer.Pool) *constant.YiError {
+	spider.InitDistributeQueue(distributeQueue)
 	yierr := spider.Scheduler.Start(nil)
 	if yierr == nil {
 		spider.StartTime = time.Now()
@@ -130,7 +165,8 @@ func (spider *mySpider) NotFirstStart() *constant.YiError {
 /*
  * first start a spider
  */
-func (spider *mySpider) FirstStart() *constant.YiError {
+func (spider *mySpider) FirstStart(distributeQueue buffer.Pool) *constant.YiError {
+	spider.InitDistributeQueue(distributeQueue)
 	yierr := spider.Scheduler.Start(spider.InitialReqs)
 	if yierr == nil {
 		spider.StartTime = time.Now()
@@ -162,13 +198,54 @@ func (spider *mySpider) Stop() *constant.YiError {
 func (spider *mySpider) SpiderStatus() *SpiderStatus {
 	summary := spider.Summary().Struct()
 	return &SpiderStatus{
-		Name: spider.name,
-		Status: spider.Status(),
-		Crawled: int(summary.Downloader.Called),
-		Success: int(summary.Downloader.Completed),
-		Running: int(summary.Downloader.Handling),
-		Waiting: int(summary.ReqBufferPool.Total),
+		Name:      spider.Name,
+		Status:    spider.Status(),
+		Crawled:   int(summary.Downloader.Called),
+		Success:   int(summary.Downloader.Completed),
+		Running:   int(summary.Downloader.Handling),
+		Waiting:   int(summary.ReqBufferPool.Total),
 		StartTime: spider.StartTime,
-		EndTime: spider.EndTime,
+		EndTime:   spider.EndTime,
 	}
 }
+
+/*
+ * get scheduler
+ */
+func (spider *mySpider) GetSched() scheduler.Scheduler {
+	return spider.Scheduler
+}
+
+/*
+ * set scheduler
+ */
+func (spider *mySpider) SetSched(sched scheduler.Scheduler) {
+	spider.Scheduler = sched
+}
+
+func init() {
+	gob.Register(&mySpider{})
+}
+
+func (spider *mySpider) Copy() Spider {
+	return &mySpider{
+		Name:        spider.Name,
+		RequestArgs: spider.RequestArgs,
+		DataArgs:    spider.DataArgs,
+		//RespParsers     []module.ParseResponse
+		//ItemProccessors []module.ProcessItem
+		StrGenParsers:    spider.StrGenParsers,
+		StrGenProcessors: spider.StrGenProcessors,
+		InitialReqs:      spider.InitialReqs,
+		StartTime:        spider.StartTime,
+		EndTime:          spider.EndTime,
+	}
+}
+
+//func (spider *mySpider) SignRequest(req *data.Request) *constant.YiError {
+//	if spider.Status() == constant.RUNNING_STATUS_UNPREPARED {
+//		return constant.NewYiErrorf(constant.ERR_SCHEDULER_NOT_INITILATED, "Scheduler has not been initilated.")
+//	}
+//	spider.Scheduler.SignRequest(req)
+//	return nil
+//}

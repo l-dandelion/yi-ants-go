@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/l-dandelion/yi-ants-go/core/module"
 	"github.com/l-dandelion/yi-ants-go/core/module/data"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
 	"github.com/l-dandelion/yi-ants-go/lib/utils"
@@ -187,4 +188,8 @@ func parseImgTag(resp *data.Response) ([]data.Data, []*constant.YiError) {
 		dataList = append(dataList, item)
 	}
 	return dataList, yierrList
+}
+
+func GenParsers() []module.ParseResponse {
+	return []module.ParseResponse{parseATag2, parseImgTag}
 }

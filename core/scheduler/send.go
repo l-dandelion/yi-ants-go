@@ -46,12 +46,25 @@ func (sched *myScheduler) sendReq(req *data.Request) bool {
 		//log.Warnf("Ignore the request! Its depth %d is greater than %d. (URL: %s)\n", req.Depth(), sched.maxDepth, reqURL)
 		return false
 	}
-	go func(req *data.Request) {
-		if err := sched.reqBufferPool.Put(req); err != nil {
-			log.Warnln("The request buffer pool was closed. Ignore request sending.")
-		}
-	}(req)
-	sched.urlMap.Put(reqURL.String(), struct{}{})
+	if sched.distributeQeueu != nil {
+		req.SetSpiderName(sched.name)
+		go func(req *data.Request) {
+			if err := sched.distributeQeueu.Put(req); err != nil {
+				log.Warnln("The distribute buffer pool was closed. Ignore request sending.")
+			}
+			if constant.RunMode == "debug" {
+				log.Infof("Send req distribute, %v Size: %d", req, sched.distributeQeueu.Total())
+			}
+		}(req)
+		sched.urlMap.Put(reqURL.String(), struct{}{})
+	} else {
+		go func(req *data.Request) {
+			if err := sched.reqBufferPool.Put(req); err != nil {
+				log.Warnln("The request buffer pool was closed. Ignore request sending.")
+			}
+		}(req)
+		sched.urlMap.Put(reqURL.String(), struct{}{})
+	}
 	return true
 }
 
@@ -60,6 +73,18 @@ func (sched *myScheduler) sendReq(req *data.Request) bool {
  * send request to request buffer pool
  */
 func (sched *myScheduler) SendReq(req *data.Request) bool {
+	if sched.distributeQeueu != nil {
+		go func(req *data.Request) {
+			if err := sched.reqBufferPool.Put(req); err != nil {
+				log.Warnln("The request buffer pool was closed. Ignore request sending.")
+			}
+			if constant.RunMode == "debug" {
+				log.Infof("Accept request: %v request buffer size: %d", req, sched.reqBufferPool.Total())
+			}
+		}(req)
+		return true
+	}
+
 	if req == nil {
 		return false
 	}
@@ -97,6 +122,9 @@ func (sched *myScheduler) SendReq(req *data.Request) bool {
 	go func(req *data.Request) {
 		if err := sched.reqBufferPool.Put(req); err != nil {
 			log.Warnln("The request buffer pool was closed. Ignore request sending.")
+		}
+		if constant.RunMode == "debug" {
+			log.Infof("Accept request: %v Size: %d", req, sched.distributeQeueu.Total())
 		}
 	}(req)
 	sched.urlMap.Put(reqURL.String(), struct{}{})

@@ -43,7 +43,7 @@ func (resp *Response) Request() *Request {
  * get http request
  */
 func (resp *Response) HTTPRequest() *http.Request {
-	return resp.req.httpReq
+	return resp.req.HTTPReq()
 }
 
 /*

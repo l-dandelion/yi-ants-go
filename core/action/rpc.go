@@ -24,6 +24,8 @@ type RpcServerCrawl interface {
 	StopSpider(req *RpcSpiderName, resp *RpcBase) error
 	//add a spider named by myself
 	AddSpider(req RpcSpider, resp *RpcBase) error
+	//sign a reuqest
+	SignRequest(req RpcRequest, resp *RpcError) error
 }
 
 type RpcServerCluster interface {
@@ -67,6 +69,8 @@ type RpcClientCrawl interface {
 	RecoverSpider(spiderName string) *constant.YiError
 	//call all node to add spider
 	AddSpider(spider spider.Spider) *constant.YiError
+	//call all node to sign a request
+	SignRequest(req *data.Request) *constant.YiError
 }
 
 type RpcClientAnts interface {

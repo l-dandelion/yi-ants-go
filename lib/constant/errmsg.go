@@ -65,6 +65,10 @@ var gmsgMap = map[int]string{
 	ERR_SPIDER_NEW: "New Spider Fail",
 	// not found spider
 	ERR_SPIDER_NOT_FOUND: "Spider Not Found",
+	// add spider fail
+	ERR_ADD_SPIDER: "Add Spider Fail",
+	// scheduler not initilated
+	ERR_SCHEDULER_NOT_INITILATED : "Scheduler Not Initilated",
 
 	/*
 	 * rpc error

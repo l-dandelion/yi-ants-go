@@ -7,11 +7,12 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/spider"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
 	"github.com/l-dandelion/yi-ants-go/lib/library/buffer"
+	"github.com/l-dandelion/yi-ants-go/lib/library/log"
 )
 
 // crawler
 type Crawler interface {
-	AddSpider(sp spider.Spider) bool
+	AddSpider(sp spider.Spider) *constant.YiError
 	StartSpider(spiderName string) *constant.YiError
 	FirstStartSpider(spiderName string) *constant.YiError
 	StopSpider(spiderName string) *constant.YiError
@@ -23,6 +24,8 @@ type Crawler interface {
 	CanWeStopSpider(spiderName string) (bool, *constant.YiError)
 	PopRequest() (*data.Request, *constant.YiError)
 	AcceptRequest(*data.Request) *constant.YiError
+	SignRequest(req *data.Request) *constant.YiError
+	HasRequest(req *data.Request) (bool, *constant.YiError)
 }
 
 type myCrawler struct {
@@ -35,7 +38,7 @@ type myCrawler struct {
  * create an instance of Crawler
  */
 func NewCrawler() (Crawler, *constant.YiError) {
-	pool, err := buffer.NewPool(50, 1000)
+	pool, err := buffer.NewPool(50, 20000)
 	if err != nil {
 		return nil, constant.NewYiErrore(constant.ERR_CRAWLER_NEW, err)
 	}
@@ -48,17 +51,21 @@ func NewCrawler() (Crawler, *constant.YiError) {
 /*
  * add a spider
  */
-func (crawler *myCrawler) AddSpider(sp spider.Spider) bool {
+func (crawler *myCrawler) AddSpider(sp spider.Spider) *constant.YiError {
 	crawler.spiderMapLock.Lock()
 	defer crawler.spiderMapLock.Unlock()
 	if sp == nil {
-		return false
+		return constant.NewYiErrorf(constant.ERR_ADD_SPIDER, "Nil spider.")
 	}
 	if _, ok := crawler.SpiderMap[sp.SpiderName()]; ok {
-		return false
+		return constant.NewYiErrorf(constant.ERR_ADD_SPIDER, "Exists spider name.")
+	}
+	yierr := sp.InitSchduler()
+	if yierr != nil {
+		return yierr
 	}
 	crawler.SpiderMap[sp.SpiderName()] = sp
-	return true
+	return nil
 }
 
 /*
@@ -72,7 +79,7 @@ func (crawler *myCrawler) StartSpider(spiderName string) *constant.YiError {
 		return constant.NewYiErrorf(constant.ERR_SPIDER_NOT_FOUND,
 			"Spider not found.(spiderName: %s)", spiderName)
 	}
-	return sp.NotFirstStart()
+	return sp.NotFirstStart(crawler.distributeQueue)
 }
 
 /*
@@ -83,7 +90,7 @@ func (crawler *myCrawler) FirstStartSpider(spiderName string) *constant.YiError 
 	if yierr != nil {
 		return yierr
 	}
-	return sp.FirstStart()
+	return sp.FirstStart(crawler.distributeQueue)
 }
 
 /*
@@ -209,11 +216,45 @@ func (Crawler *myCrawler) PopRequest() (*data.Request, *constant.YiError) {
  * accept a request
  */
 
- func (crawler *myCrawler) AcceptRequest(req *data.Request) *constant.YiError {
- 	sp, yierr := crawler.GetSpider(req.SpiderName())
- 	if yierr != nil {
- 		return yierr
+func (crawler *myCrawler) AcceptRequest(req *data.Request) *constant.YiError {
+	if constant.RunMode == "debug" {
+		log.Infof("Accept request: %v SpiderName: %s", req, req.SpiderName())
+	}
+	sp, yierr := crawler.GetSpider(req.SpiderName())
+	if yierr != nil {
+		return yierr
 	}
 	sp.AcceptedRequest(req)
 	return nil
- }
+}
+
+/*
+ * sign a request
+ */
+func (crawler *myCrawler) SignRequest(req *data.Request) *constant.YiError {
+	sp, yierr := crawler.GetSpider(req.SpiderName())
+	if yierr != nil {
+		return yierr
+	}
+	sp.SignRequest(req)
+	return nil
+}
+
+/*
+ * check whether it has this request
+ */
+func (crawler *myCrawler) HasRequest(req *data.Request) (bool, *constant.YiError) {
+	sp, yierr := crawler.GetSpider(req.SpiderName())
+	if yierr != nil {
+		return false, yierr
+	}
+	return sp.HasRequest(req), nil
+}
+
+func (crawler *myCrawler) SpiderStatus(spiderName string) (*spider.SpiderStatus, *constant.YiError) {
+	sp, yierr := crawler.GetSpider(spiderName)
+	if yierr != nil {
+		return nil, yierr
+	}
+	return sp.SpiderStatus(), nil
+}

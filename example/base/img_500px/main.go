@@ -80,8 +80,8 @@ func main() {
 		AcceptedDomains: []string{"pixabay.com"},
 	}
 	dataArgs := scheduler.DataArgs{
-		ReqBufferCap:         50,
-		ReqMaxBufferNumber:   1000,
+		ReqBufferCap:         300,
+		ReqMaxBufferNumber:   2000,
 		RespBufferCap:        50,
 		RespMaxBufferNumber:  100,
 		ItemBufferCap:        50,

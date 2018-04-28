@@ -65,6 +65,10 @@ const (
 	ERR_SPIDER_NEW = 50001
 	// not found spider
 	ERR_SPIDER_NOT_FOUND = 50002
+	// add spider fail
+	ERR_ADD_SPIDER = 50003
+	// scheduler not initilated
+	ERR_SCHEDULER_NOT_INITILATED = 50004
 
 	/*
 	 * rpc error
