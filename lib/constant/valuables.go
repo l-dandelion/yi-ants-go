@@ -31,13 +31,30 @@ const (
  * 缓冲池常量
  */
 const (
-	DEFAULT_BUFFER_CAP_SMALL = 10
+	DEFAULT_BUFFER_CAP_SMALL  = 10
 	DEFAULT_BUFFER_CAP_MIDDLE = 100
-	DEFAULT_BUFFER_CAP_BIG = 1000
+	DEFAULT_BUFFER_CAP_BIG    = 1000
 
-	DEFAULT_MAX_BUFFER_NUMBER_SMALL = 1
+	DEFAULT_MAX_BUFFER_NUMBER_SMALL  = 1
 	DEFAULT_MAX_BUFFER_NUMBER_MIDDLE = 100
-	DEFAULT_MAX_BUFFER_NUMBER_BIG = 10000
+	DEFAULT_MAX_BUFFER_NUMBER_BIG    = 10000
+)
+
+const (
+	// 未设定
+	OutputTypeNotSet int8 = 0
+	// json输出,有jsonpcallback时做jsonp输出
+	OutputTypeJson int8 = 1
+	// 原始内容直接输出
+	OutputTypeRaw int8 = 2
+	// 模板输出
+	OutputTypeHtml int8 = 3
+	// 验证码图片内容输出
+	OutputTypeCaptchaImage int8 = 4
+	// 下载文件输出
+	OutputTypeDownFile int8 = 5
+	// 图片内容输出
+	OutputTypeImage int8 = 6
 )
 
 var (
