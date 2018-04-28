@@ -251,6 +251,9 @@ func (crawler *myCrawler) HasRequest(req *data.Request) (bool, *constant.YiError
 	return sp.HasRequest(req), nil
 }
 
+/*
+ * get the status of a spider named spiderName
+ */
 func (crawler *myCrawler) SpiderStatus(spiderName string) (*spider.SpiderStatus, *constant.YiError) {
 	sp, yierr := crawler.GetSpider(spiderName)
 	if yierr != nil {

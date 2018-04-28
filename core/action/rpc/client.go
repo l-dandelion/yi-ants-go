@@ -305,6 +305,7 @@ func (this *RpcClient) AddSpider(spider spider.Spider) (yierr *constant.YiError)
 	return nil
 }
 
+//call all node to sign request
 func (this *RpcClient) SignRequest(dreq *data.Request) (yierr *constant.YiError) {
 	nodeInfoList := this.cluster.GetAllNode()
 	for _, nodeInfo := range nodeInfoList {

@@ -40,6 +40,10 @@ func NewRouter(node node.Node, cluster cluster.Cluster, reporter, distributer ac
 	mux["/spiders"] = router.Spiders
 	mux["/crawl"] = router.Crawl
 	mux["/spiderstatus"] = router.SpiderStatus
+	mux["/stopspider"] = router.StopSpider
+	mux["/pausespider"] = router.PauseSpider
+	mux["/recoverspider"] = router.RecoverSpider
+	mux["/startspider"] = router.Crawl
 	return router
 }
 
@@ -117,6 +121,63 @@ func (this *Router) SpiderStatus(w http.ResponseWriter, r *http.Request){
 		Content: spiderStatus,
 	}
 	encoder, err := json.Marshal(result)
+	if err != nil {
+		log.Error(err)
+	}
+	w.Write(encoder)
+}
+
+func (this *Router) StopSpider(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	spiderName := r.Form["spider"][0]
+	now := time.Now().Format("2006-01-02 15:04:05")
+	startResult := &StartSpiderResult{}
+	startResult.Time = now
+	startResult.Spider = spiderName
+	yierr := this.rpcClient.StopSpider(spiderName)
+	if yierr == nil {
+		startResult.Success = true
+	}
+	startResult.Yierr = yierr
+	encoder, err := json.Marshal(startResult)
+	if err != nil {
+		log.Error(err)
+	}
+	w.Write(encoder)
+}
+
+func (this *Router) PauseSpider(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	spiderName := r.Form["spider"][0]
+	now := time.Now().Format("2006-01-02 15:04:05")
+	startResult := &StartSpiderResult{}
+	startResult.Time = now
+	startResult.Spider = spiderName
+	yierr := this.rpcClient.PauseSpider(spiderName)
+	if yierr == nil {
+		startResult.Success = true
+	}
+	startResult.Yierr = yierr
+	encoder, err := json.Marshal(startResult)
+	if err != nil {
+		log.Error(err)
+	}
+	w.Write(encoder)
+}
+
+func (this *Router) RecoverSpider(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	spiderName := r.Form["spider"][0]
+	now := time.Now().Format("2006-01-02 15:04:05")
+	startResult := &StartSpiderResult{}
+	startResult.Time = now
+	startResult.Spider = spiderName
+	yierr := this.rpcClient.RecoverSpider(spiderName)
+	if yierr == nil {
+		startResult.Success = true
+	}
+	startResult.Yierr = yierr
+	encoder, err := json.Marshal(startResult)
 	if err != nil {
 		log.Error(err)
 	}

@@ -10,6 +10,7 @@ var defaultLogger = Logger(
 	base.LEVEL_INFO,
 	base.FORMAT_TEXT,
 	os.Stdout,
+	nil,
 )
 
 func Info(v ...interface{}) {

@@ -31,6 +31,7 @@ func NewRpcServer(node node.Node, cluster cluster.Cluster, port int, rpcClient a
 	return rpcServer
 }
 
+//listen
 func (this *RpcServer) server() {
 	rpc.Register(this)
 	listener, err := net.Listen(RPC_TYPE, ":"+strconv.Itoa(this.port))
@@ -50,6 +51,7 @@ func (this *RpcServer) server() {
 	}
 }
 
+//start listen
 func (this *RpcServer) start() {
 	go this.server()
 }
@@ -117,6 +119,7 @@ func (this *RpcServer) AddSpider(req *action.RpcSpider, resp *action.RpcError) e
 	return nil
 }
 
+//first add a spider
 func (this *RpcServer) FirstAddSpider(req *action.RpcSpider, resp *action.RpcError) error {
 	resp.Yierr = this.rpcClient.AddSpider(req.Spider)
 	resp.Result = resp.Yierr == nil
@@ -136,6 +139,7 @@ func (this *RpcServer) LetMeIn(req *action.RpcBase, resp *action.RpcError) error
 	return nil
 }
 
+//get all node information
 func (this *RpcServer) GetAllNode(req *action.RpcBase, resp *action.RpcNodeInfoList) error {
 	resp.NodeInfo = this.node.GetNodeInfo()
 	resp.Result = true
@@ -143,6 +147,7 @@ func (this *RpcServer) GetAllNode(req *action.RpcBase, resp *action.RpcNodeInfoL
 	return nil
 }
 
+// sign a request
 func (this *RpcServer) SignRequest(req *action.RpcRequest, resp *action.RpcError) error {
 	resp.NodeInfo = this.node.GetNodeInfo()
 	resp.Yierr = this.node.SignRequest(req.Req)
