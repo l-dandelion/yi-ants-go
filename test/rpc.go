@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"net/http"
 	http2 "github.com/l-dandelion/yi-ants-go/core/action/http"
-	"github.com/l-dandelion/yi-ants-go/lib/library/log"
+	log "github.com/sirupsen/logrus"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
 )
 

@@ -5,7 +5,7 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/action"
 	"github.com/l-dandelion/yi-ants-go/core/cluster"
 	"github.com/l-dandelion/yi-ants-go/core/node"
-	"github.com/l-dandelion/yi-ants-go/lib/library/log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"

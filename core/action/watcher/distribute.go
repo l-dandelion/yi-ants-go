@@ -6,7 +6,7 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/module/data"
 	"github.com/l-dandelion/yi-ants-go/core/node"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
-	"github.com/l-dandelion/yi-ants-go/lib/library/log"
+	log "github.com/sirupsen/logrus"
 	"github.com/l-dandelion/yi-ants-go/lib/library/pool"
 	"sync"
 	"time"
@@ -122,19 +122,6 @@ func (this *Distributer) Run() {
 				log.Errorf("Distribute Error: %s", err)
 				return
 			}
-			if constant.RunMode == "debug" {
-				log.Infof("distribute request: %v thread: %d", request, this.pool.Num())
-			}
-			//ok, err := this.Node.HasRequest(request)
-			//if err != nil {
-			//	log.Errorf("Distribute Error: %s", err)
-			//	return
-			//}
-			//if ok {
-			//	log.Warnf("Distribute Warn: Request is reapted. (Url: %s)", request.HTTPReq().URL)
-			//	return
-			//}
-			//this.RpcClient.SignRequest(request)
 			this.Distribute(request)
 			this.RpcClient.Distribute(request.NodeName(), request)
 		}()

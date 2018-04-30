@@ -10,7 +10,7 @@ import (
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
 	"github.com/l-dandelion/yi-ants-go/lib/library/buffer"
 	"github.com/l-dandelion/yi-ants-go/lib/library/cmap"
-	"github.com/l-dandelion/yi-ants-go/lib/library/log"
+	log "github.com/sirupsen/logrus"
 	"time"
 )
 

@@ -3,7 +3,7 @@ package main
 import (
 	"net/rpc"
 	"strconv"
-	"github.com/l-dandelion/yi-ants-go/lib/library/log"
+	log "github.com/sirupsen/logrus"
 	"github.com/l-dandelion/yi-ants-go/core/action"
 	"fmt"
 	"encoding/gob"

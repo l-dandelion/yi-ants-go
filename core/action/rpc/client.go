@@ -7,7 +7,7 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/node"
 	"github.com/l-dandelion/yi-ants-go/core/spider"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
-	"github.com/l-dandelion/yi-ants-go/lib/library/log"
+	log "github.com/sirupsen/logrus"
 	"net/rpc"
 	"strconv"
 	"time"
@@ -32,7 +32,6 @@ func NewRpcClient(node node.Node, cluster cluster.Cluster) *RpcClient {
 
 //connect to node(ip:port) and return an client
 func (this *RpcClient) Dial(ip string, port int) (*rpc.Client, *constant.YiError) {
-	log.Infof("Local:%s Call Dial(%s, %d)", this.node.GetNodeInfo().Name, ip, port)
 	client, err := rpc.Dial(RPC_TYPE, ip+":"+strconv.Itoa(port))
 	if err != nil {
 		return nil, constant.NewYiErrore(constant.ERR_RPC_CLIENT_DIAL, err)
@@ -111,7 +110,6 @@ func (this *RpcClient) LetMeIn(ip string, port int) *constant.YiError {
 
 // connect node(ip:port) and store
 func (this *RpcClient) Connect(ip string, port int) *constant.YiError {
-	log.Infof("Local: %s Connect to node: %s:%d\n", this.node.GetNodeInfo().Name, ip, port)
 	client, yierr := this.Dial(ip, port)
 	if yierr != nil {
 		return yierr
@@ -133,9 +131,6 @@ func (this *RpcClient) Connect(ip string, port int) *constant.YiError {
 
 //call node.RpcServer.AcceptRequest(req)
 func (this *RpcClient) Distribute(nodeName string, req *data.Request) (yierr *constant.YiError) {
-	if constant.RunMode == "debug" {
-		log.Infof("Distribute NodoName: %s, req: %v", nodeName, req)
-	}
 	if this.node.IsMe(nodeName) {
 		return this.node.AcceptRequest(req)
 	}
@@ -157,9 +152,6 @@ func (this *RpcClient) Distribute(nodeName string, req *data.Request) (yierr *co
 
 //call all node to start spider named spiderName
 func (this *RpcClient) StartSpider(spiderName string) (yierr *constant.YiError) {
-	if constant.RunMode == "debug" {
-		log.Infof("LocalNode: %s, StartSpider(%s)", this.node.GetNodeInfo().Name, spiderName)
-	}
 	nodeInfoList := this.cluster.GetAllNode()
 	for _, nodeInfo := range nodeInfoList {
 		if this.node.IsMe(nodeInfo.Name) {
@@ -273,9 +265,6 @@ func (this *RpcClient) RecoverSpider(spiderName string) (yierr *constant.YiError
 
 //call all node to add spider
 func (this *RpcClient) AddSpider(spider spider.Spider) (yierr *constant.YiError) {
-	if constant.RunMode == "debug" {
-		log.Infof("%v", spider.GetInitReqs()[0])
-	}
 	nodeInfoList := this.cluster.GetAllNode()
 	csp := spider.Copy()
 	yierr = this.node.AddSpider(spider)

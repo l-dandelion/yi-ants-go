@@ -4,11 +4,10 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/action"
 	"github.com/l-dandelion/yi-ants-go/core/cluster"
 	"github.com/l-dandelion/yi-ants-go/core/node"
-	"github.com/l-dandelion/yi-ants-go/lib/library/log"
+	log "github.com/sirupsen/logrus"
 	"net"
 	"net/rpc"
 	"strconv"
-	"github.com/l-dandelion/yi-ants-go/lib/constant"
 )
 
 const (
@@ -57,7 +56,6 @@ func (this *RpcServer) start() {
 }
 
 func (this *RpcServer) IsAlive(request *action.RpcBase, response *action.RpcBase) error {
-	log.Infof("Local:%s Call Is Alive", this.node.GetNodeInfo().Name)
 	response.NodeInfo = this.node.GetNodeInfo()
 	response.Result = true
 	return nil
@@ -74,9 +72,6 @@ func (this *RpcServer) AcceptRequest(req *action.RpcRequest, resp *action.RpcErr
 
 //start a spider named req.SpiderName
 func (this *RpcServer) StartSpider(req *action.RpcSpiderName, resp *action.RpcError) error {
-	if constant.RunMode == "dubug" {
-		log.Infof("Local:%s Start Spider(%s)", this.node.GetNodeInfo().Name, req.SpiderName)
-	}
 	err := this.node.StartSpider(req.SpiderName)
 	resp.Yierr = err
 	resp.Result = err == nil

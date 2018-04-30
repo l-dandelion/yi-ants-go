@@ -13,7 +13,7 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/scheduler"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
 	"github.com/l-dandelion/yi-ants-go/lib/library/buffer"
-	"github.com/l-dandelion/yi-ants-go/lib/library/log"
+	log "github.com/sirupsen/logrus"
 	"github.com/l-dandelion/yi-ants-go/lib/library/plugin"
 	"strings"
 	"sync"

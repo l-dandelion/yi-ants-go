@@ -7,7 +7,7 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/module/data"
 	"github.com/l-dandelion/yi-ants-go/core/module/stub"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
-	"github.com/l-dandelion/yi-ants-go/lib/library/log"
+	log "github.com/sirupsen/logrus"
 )
 
 const RETRY_TIMES = 3

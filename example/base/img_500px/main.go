@@ -10,7 +10,7 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/module/local/downloader"
 	"github.com/l-dandelion/yi-ants-go/core/module/local/pipeline"
 	"github.com/l-dandelion/yi-ants-go/core/scheduler"
-	"github.com/l-dandelion/yi-ants-go/lib/library/log"
+	log "github.com/sirupsen/logrus"
 	"github.com/l-dandelion/yi-ants-go/core/module/data"
 	"sync/atomic"
 )

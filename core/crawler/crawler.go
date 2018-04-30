@@ -7,7 +7,6 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/spider"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
 	"github.com/l-dandelion/yi-ants-go/lib/library/buffer"
-	"github.com/l-dandelion/yi-ants-go/lib/library/log"
 )
 
 // crawler
@@ -262,9 +261,6 @@ func (Crawler *myCrawler) PopRequest() (*data.Request, *constant.YiError) {
  */
 
 func (crawler *myCrawler) AcceptRequest(req *data.Request) *constant.YiError {
-	if constant.RunMode == "debug" {
-		log.Infof("Accept request: %v SpiderName: %s", req, req.SpiderName())
-	}
 	sp, yierr := crawler.GetSpider(req.SpiderName())
 	if yierr != nil {
 		return yierr
