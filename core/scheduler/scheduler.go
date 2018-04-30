@@ -15,6 +15,7 @@ import (
 )
 
 type Scheduler interface {
+	SchedulerName() string
 	Init(RequestArgs, DataArgs, ModuleArgs) *constant.YiError
 	Start(initialReqs []*data.Request) *constant.YiError
 	Pause() *constant.YiError
@@ -24,6 +25,17 @@ type Scheduler interface {
 	ErrorChan() <-chan *constant.YiError // get error
 	Idle() bool                          // check whether the job is finished
 	Summary() SchedSummary               // get schduler summary
+	SendReq(req *data.Request) bool
+	SetDistributeQueue(pool buffer.Pool)
+	SignRequest(request *data.Request)
+	HasRequest(request *data.Request) bool
+}
+
+/*
+ * create an instance of interface Scheduler by name
+ */
+func New(name string) Scheduler {
+	return &myScheduler{name: name}
 }
 
 /*
@@ -37,6 +49,7 @@ func NewScheduler() Scheduler {
  * implementation of interface Scheduler
  */
 type myScheduler struct {
+	name              string
 	maxDepth          uint32             // the max crawl depth
 	acceptedDomainMap cmap.ConcurrentMap // accepted domain
 	reqBufferPool     buffer.Pool        // request buffer pool
@@ -52,6 +65,14 @@ type myScheduler struct {
 	downloader        module.Downloader  // downloader
 	analyzer          module.Analyzer    // analyzer
 	pipeline          module.Pipeline    // pipeline
+	distributeQeueu   buffer.Pool
+}
+
+/*
+ * get scheduler name
+ */
+func (sched *myScheduler) SchedulerName() string {
+	return sched.name
 }
 
 /*
@@ -151,12 +172,12 @@ func (sched *myScheduler) Start(initialReqs []*data.Request) (yierr *constant.Yi
 		}
 		sched.statusLock.Unlock()
 	}()
-	log.Info("Check initial HTTP request list...")
-	if initialReqs == nil {
-		yierr = constant.NewYiErrorf(constant.ERR_CRAWL_SCHEDULER, "Nil initial HTTP request list")
-		return
-	}
-	log.Info("Initial HTTP request list is valid.")
+	//log.Info("Check initial request list...")
+	//if initialReqs == nil {
+	//	yierr = constant.NewYiErrorf(constant.ERR_CRAWL_SCHEDULER, "Nil initial HTTP request list")
+	//	return
+	//}
+	//log.Info("Initial HTTP request list is valid.")
 
 	log.Info("Get the primary domain...")
 
@@ -281,7 +302,7 @@ func (sched *myScheduler) ErrorChan() <-chan *constant.YiError {
 			}
 			//paused
 			if sched.Status() == constant.RUNNING_STATUS_PAUSED {
-				time.Sleep(100*time.Millisecond)
+				time.Sleep(100 * time.Millisecond)
 				continue
 			}
 			datum, err := errBuffer.Get()
@@ -437,4 +458,25 @@ func (sched *myScheduler) Status() int8 {
 	sched.statusLock.RLock()
 	defer sched.statusLock.RUnlock()
 	return sched.status
+}
+
+/*
+ * set distribute queue
+ */
+func (sched *myScheduler) SetDistributeQueue(pool buffer.Pool) {
+	sched.distributeQeueu = pool
+}
+
+/*
+ * sign request
+ */
+func (sched *myScheduler) SignRequest(req *data.Request) {
+	sched.urlMap.Put(req.HTTPReq().URL.String(), struct{}{})
+}
+
+/*
+ * check whether it has request
+ */
+func (sched *myScheduler) HasRequest(req *data.Request) bool {
+	return sched.urlMap.Get(req.HTTPReq().URL.String()) != nil
 }

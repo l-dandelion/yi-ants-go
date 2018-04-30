@@ -1,6 +1,17 @@
 package log
 
-var defaultLogger = DLogger()
+import (
+	"github.com/l-dandelion/yi-ants-go/lib/library/log/base"
+	"os"
+)
+
+var defaultLogger = Logger(
+	base.TYPE_LOGRUS,
+	base.LEVEL_INFO,
+	base.FORMAT_TEXT,
+	os.Stdout,
+	nil,
+)
 
 func Info(v ...interface{}) {
 	defaultLogger.Info(v...)

@@ -26,6 +26,20 @@ const (
 	RUNNING_STATUS_STOPPED_DESC    = "Stopped(已终止)"
 )
 
+/*
+ * buffer pool constant
+ * 缓冲池常量
+ */
+const (
+	DEFAULT_BUFFER_CAP_SMALL = 10
+	DEFAULT_BUFFER_CAP_MIDDLE = 100
+	DEFAULT_BUFFER_CAP_BIG = 1000
+
+	DEFAULT_MAX_BUFFER_NUMBER_SMALL = 1
+	DEFAULT_MAX_BUFFER_NUMBER_MIDDLE = 100
+	DEFAULT_MAX_BUFFER_NUMBER_BIG = 10000
+)
+
 var (
 	//running status
 	GlobalArrRunningStatus = []int8{

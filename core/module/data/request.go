@@ -2,6 +2,8 @@ package data
 
 import (
 	"net/http"
+	"encoding/gob"
+	"errors"
 )
 
 /*
@@ -12,24 +14,47 @@ import (
  * extra: additional information(used for context)
  */
 type Request struct {
-	httpReq *http.Request          // the http request
-	depth   uint32                 // crawl depth
-	proxy   string                 // use proxy if not empty
-	Extra   map[string]interface{} // additional information(used for context)
+	RNodeName   string
+	RSpiderName string
+	RHttpReq    *http.Request          // the http request
+	RDepth      uint32                 // crawl depth
+	RProxy      string                 // use proxy if not empty
+	Extra      map[string]interface{} // additional information(used for context)
+}
+
+/*
+ * get spider name
+ */
+func (req *Request) SpiderName() string {
+	return req.RSpiderName
+}
+
+/*
+ * get node name
+ */
+func (req *Request) NodeName() string {
+	return req.RNodeName
+}
+
+/*
+ * set node name
+ */
+func (req *Request) SetNodeName(nodeName string) {
+	req.RNodeName = nodeName
 }
 
 /*
  * get http request
  */
 func (req *Request) HTTPReq() *http.Request {
-	return req.httpReq
+	return req.RHttpReq
 }
 
 /*
  * get crawl depth
  */
 func (req *Request) Depth() uint32 {
-	return req.depth
+	return req.RDepth
 }
 
 /*
@@ -43,14 +68,14 @@ func (req *Request) SetExtra(key string, val interface{}) {
  * set crawl depth
  */
 func (req *Request) SetDepth(depth uint32) {
-	req.depth = depth
+	req.RDepth = depth
 }
 
 /*
  * check the request
  */
 func (req *Request) Valid() bool {
-	return req.httpReq != nil && req.httpReq.URL != nil
+	return req.RHttpReq != nil && req.RHttpReq.URL != nil
 }
 
 /*
@@ -64,7 +89,7 @@ func NewRequest(httpReq *http.Request, extras ...map[string]interface{}) *Reques
 		extra = map[string]interface{}{}
 	}
 	return &Request{
-		httpReq: httpReq,
+		RHttpReq: httpReq,
 		Extra:   extra,
 	}
 }
@@ -77,14 +102,14 @@ func (req *Request) AddCookie(key, value string) {
 		Name:  key,
 		Value: value,
 	}
-	req.httpReq.AddCookie(c)
+	req.RHttpReq.AddCookie(c)
 }
 
 /*
  * set header
  */
 func (req *Request) SetHeader(key, value string) {
-	req.httpReq.Header.Set(key, value)
+	req.RHttpReq.Header.Set(key, value)
 }
 
 /*
@@ -105,5 +130,16 @@ func (req *Request) SetReferer(referer string) {
  * set proxy
  */
 func (req *Request) SetProxy(proxy string) {
-	req.proxy = proxy
+	req.RProxy = proxy
+}
+
+/*
+ * set spider name
+ */
+func (req *Request) SetSpiderName(name string) {
+	req.RSpiderName = name
+}
+
+func init() {
+	gob.Register(errors.New(""))
 }
