@@ -1,7 +1,7 @@
 package base
 
 import (
-	"github.com/l-dandelion/crawler_lib/common"
+	"github.com/l-dandelion/yi-ants-go/lib/common"
 	"sync"
 )
 

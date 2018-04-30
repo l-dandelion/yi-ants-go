@@ -3,7 +3,7 @@ package base
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/l-dandelion/crawler_lib/constant"
+	"github.com/l-dandelion/yi-ants-go/lib/constant"
 	"html/template"
 	"net/http"
 	"strings"

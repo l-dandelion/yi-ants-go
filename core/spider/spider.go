@@ -15,17 +15,21 @@ import (
 	"github.com/l-dandelion/yi-ants-go/lib/library/buffer"
 	"github.com/l-dandelion/yi-ants-go/lib/library/log"
 	"github.com/l-dandelion/yi-ants-go/lib/library/plugin"
+	"strings"
+	"sync"
 )
 
 type SpiderStatus struct {
-	Name      string
-	Status    int8
-	Crawled   int
-	Success   int
-	Running   int
-	Waiting   int
-	StartTime time.Time
-	EndTime   time.Time
+	Name            string
+	CompilingStatus int8
+	Status          int8
+	Crawled         int
+	Success         int
+	Running         int
+	Waiting         int
+	StartTime       time.Time
+	EndTime         time.Time
+	ComplilingError *constant.YiError
 }
 
 type Spider interface {
@@ -40,6 +44,8 @@ type Spider interface {
 	SetSched(scheduler.Scheduler)
 	GetSched() scheduler.Scheduler
 	Copy() Spider
+	Complile() *constant.YiError
+	CanStart() bool
 }
 
 func (spider *mySpider) GetInitReqs() []*data.Request {
@@ -48,16 +54,19 @@ func (spider *mySpider) GetInitReqs() []*data.Request {
 
 type mySpider struct {
 	scheduler.Scheduler
-	Name        string
-	RequestArgs scheduler.RequestArgs
-	DataArgs    scheduler.DataArgs
-	//RespParsers     []module.ParseResponse
-	//ItemProccessors []module.ProcessItem
-	StrGenParsers    string
-	StrGenProcessors string
-	InitialReqs      []*data.Request
-	StartTime        time.Time
-	EndTime          time.Time
+	Name                string
+	RequestArgs         scheduler.RequestArgs
+	DataArgs            scheduler.DataArgs
+	respParsers         []module.ParseResponse
+	itemProccessors     []module.ProcessItem
+	StrGenParsers       string
+	StrGenProcessors    string
+	InitialReqs         []*data.Request
+	StartTime           time.Time
+	EndTime             time.Time
+	compilingError      *constant.YiError
+	compilingStatus     int8
+	compilingStatusLock sync.Mutex
 }
 
 /*
@@ -86,6 +95,9 @@ func New(name string,
 	spider.InitialReqs = []*data.Request{}
 	if initialUrls != nil {
 		for _, urlStr := range initialUrls {
+			if strings.Index(urlStr, "http") != 0 {
+				urlStr = "http://" + urlStr
+			}
 			httpReq, err := http.NewRequest("GET", urlStr, nil)
 			if err != nil {
 				return nil, constant.NewYiErrore(constant.ERR_SPIDER_NEW, err)
@@ -109,30 +121,63 @@ func (spider *mySpider) SpiderName() string {
 	return spider.Name
 }
 
+func (spider *mySpider) Complile() (yierr *constant.YiError) {
+	spider.compilingStatusLock.Lock()
+	if spider.compilingStatus != constant.COMPLILING_STATUS_UNCOMPLILED {
+		yierr = constant.NewYiErrorf(constant.ERR_COMPLILE_FAIL, "The compliling is not uncompliled.(Status: %d)", spider.compilingStatus)
+		spider.compilingStatusLock.Unlock()
+		return
+	}
+	spider.compilingStatus = constant.COMPLILING_STATUS_COMPLILING
+	spider.compilingStatusLock.Unlock()
+	defer func() {
+		spider.compilingStatusLock.Lock()
+		if yierr != nil {
+			spider.compilingStatus = constant.COMPLILING_STATUS_FAIL
+			spider.compilingError = yierr
+		} else {
+			spider.compilingStatus = constant.COMPLILING_STATUS_COMPLILED
+		}
+		spider.compilingStatusLock.Unlock()
+	}()
+	f, err := plugin.GenFuncFromStr(spider.StrGenParsers, "GenParsers")
+	if err != nil {
+		yierr = constant.NewYiErrorf(constant.ERR_FUNC_GEN, "Gen parsers fail.Err: %s", err)
+		return
+	}
+	spider.respParsers = f.(func() []module.ParseResponse)()
+	f, err = plugin.GenFuncFromStr(spider.StrGenProcessors, "GenProcessors")
+	if err != nil {
+		yierr = constant.NewYiErrorf(constant.ERR_FUNC_GEN, "Gen processors fail.Err: %s", err)
+		return
+	}
+	spider.itemProccessors = f.(func() []module.ProcessItem)()
+	return
+}
+
 /*
  * initialize scheduler
  */
-func (spider *mySpider) InitSchduler() *constant.YiError {
+func (spider *mySpider) InitSchduler() (yierr *constant.YiError) {
+	spider.compilingStatusLock.Lock()
+	if spider.compilingStatus != constant.COMPLILING_STATUS_COMPLILED {
+		defer spider.compilingStatusLock.Unlock()
+		return constant.NewYiErrorf(constant.ERR_NOT_COMPLILED, "Spider is not complized.(Status: %d)", spider.compilingStatus)
+	}
+	spider.compilingStatusLock.Unlock()
+
 	sched := scheduler.New(spider.Name)
 	spider.Scheduler = sched
 	downloader, yierr := downloader.New("D1", genHTTPClient(), module.CalculateScoreSimple)
 	if yierr != nil {
 		return yierr
 	}
-	f, err := plugin.GenFuncFromStr(spider.StrGenParsers, "GenParsers")
-	if err != nil {
-		return constant.NewYiErrore(constant.ERR_SPIDER_NEW, err)
-	}
-	parsers := f.(func() []module.ParseResponse)()
+	parsers := spider.respParsers
 	analyzer, yierr := analyzer.New("A1", parsers, module.CalculateScoreSimple)
 	if yierr != nil {
 		return yierr
 	}
-	f, err = plugin.GenFuncFromStr(spider.StrGenProcessors, "GenProcessors")
-	if err != nil {
-		return constant.NewYiErrore(constant.ERR_SPIDER_NEW, err)
-	}
-	processors := f.(func() []module.ProcessItem)()
+	processors := spider.itemProccessors
 	pipeline, yierr := pipeline.New("P1", processors, module.CalculateScoreSimple)
 	moduleArgs := scheduler.ModuleArgs{
 		Downloader: downloader,
@@ -154,6 +199,13 @@ func (spider *mySpider) InitDistributeQueue(distributerQueue buffer.Pool) {
  * start a spider
  */
 func (spider *mySpider) NotFirstStart(distributeQueue buffer.Pool) *constant.YiError {
+	spider.compilingStatusLock.Lock()
+	if spider.compilingStatus != constant.COMPLILING_STATUS_COMPLILED {
+		defer spider.compilingStatusLock.Unlock()
+		return constant.NewYiErrorf(constant.ERR_NOT_COMPLILED, "Spider is not complized.(Status: %d)", spider.compilingStatus)
+	}
+	spider.compilingStatusLock.Unlock()
+
 	spider.InitDistributeQueue(distributeQueue)
 	yierr := spider.Scheduler.Start(nil)
 	if yierr == nil {
@@ -166,6 +218,16 @@ func (spider *mySpider) NotFirstStart(distributeQueue buffer.Pool) *constant.YiE
  * first start a spider
  */
 func (spider *mySpider) FirstStart(distributeQueue buffer.Pool) *constant.YiError {
+	spider.compilingStatusLock.Lock()
+	if spider.compilingStatus != constant.COMPLILING_STATUS_COMPLILED {
+		defer spider.compilingStatusLock.Unlock()
+		return constant.NewYiErrorf(constant.ERR_NOT_COMPLILED, "Spider is not complized.(Status: %d)", spider.compilingStatus)
+	}
+	spider.compilingStatusLock.Unlock()
+	if spider.Scheduler == nil {
+		return constant.NewYiErrorf(constant.ERR_SCHEDULER_NOT_INITILATED, "Spider is not initilated.")
+	}
+
 	spider.InitDistributeQueue(distributeQueue)
 	yierr := spider.Scheduler.Start(spider.InitialReqs)
 	if yierr == nil {
@@ -185,6 +247,13 @@ func (spider *mySpider) AcceptedRequest(req *data.Request) bool {
  * stop a spider
  */
 func (spider *mySpider) Stop() *constant.YiError {
+	spider.compilingStatusLock.Lock()
+	if spider.compilingStatus != constant.COMPLILING_STATUS_COMPLILED {
+		defer spider.compilingStatusLock.Unlock()
+		return constant.NewYiErrorf(constant.ERR_NOT_COMPLILED, "Spider is not complized.(Status: %d)", spider.compilingStatus)
+	}
+	spider.compilingStatusLock.Unlock()
+
 	yierr := spider.Scheduler.Stop()
 	if yierr == nil {
 		spider.EndTime = time.Now()
@@ -196,16 +265,36 @@ func (spider *mySpider) Stop() *constant.YiError {
  * get spider status
  */
 func (spider *mySpider) SpiderStatus() *SpiderStatus {
+	spider.compilingStatusLock.Lock()
+	defer spider.compilingStatusLock.Unlock()
+
+	if spider.Scheduler == nil || spider.Summary() == nil {
+		return &SpiderStatus{
+			Name:            spider.Name,
+			CompilingStatus: spider.compilingStatus,
+			ComplilingError: spider.compilingError,
+			Status:          0,
+			Crawled:         0,
+			Success:         0,
+			Running:         0,
+			Waiting:         0,
+			StartTime:       spider.StartTime,
+			EndTime:         spider.EndTime,
+		}
+	}
+
 	summary := spider.Summary().Struct()
 	return &SpiderStatus{
-		Name:      spider.Name,
-		Status:    spider.Status(),
-		Crawled:   int(summary.Downloader.Called),
-		Success:   int(summary.Downloader.Completed),
-		Running:   int(summary.Downloader.Handling),
-		Waiting:   int(summary.ReqBufferPool.Total),
-		StartTime: spider.StartTime,
-		EndTime:   spider.EndTime,
+		Name:            spider.Name,
+		CompilingStatus: spider.compilingStatus,
+		ComplilingError: spider.compilingError,
+		Status:          spider.Status(),
+		Crawled:         int(summary.Downloader.Called),
+		Success:         int(summary.Downloader.Completed),
+		Running:         int(summary.Downloader.Handling),
+		Waiting:         int(summary.ReqBufferPool.Total),
+		StartTime:       spider.StartTime,
+		EndTime:         spider.EndTime,
 	}
 }
 
@@ -249,3 +338,10 @@ func (spider *mySpider) Copy() Spider {
 //	spider.Scheduler.SignRequest(req)
 //	return nil
 //}
+
+// can start
+func (spider *mySpider) CanStart() bool {
+	spider.compilingStatusLock.Lock()
+	defer spider.compilingStatusLock.Unlock()
+	return spider.compilingStatus == constant.COMPLILING_STATUS_COMPLILED
+}

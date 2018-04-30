@@ -8,6 +8,10 @@ var gmsgMap = map[int]string{
 
 	//args error(参数错误)
 	ERR_ARGS: "Args Error(参数错误)",
+	//read file fail
+	ERR_READ_FILE: "Read File Fail",
+	//gen func
+	ERR_FUNC_GEN: "Gen Func Fail",
 
 	/*
 	 * crawl error
@@ -68,7 +72,11 @@ var gmsgMap = map[int]string{
 	// add spider fail
 	ERR_ADD_SPIDER: "Add Spider Fail",
 	// scheduler not initilated
-	ERR_SCHEDULER_NOT_INITILATED : "Scheduler Not Initilated",
+	ERR_SCHEDULER_NOT_INITILATED: "Scheduler Not Initilated",
+	// compliling fail
+	ERR_COMPLILE_FAIL: "Complile Fail",
+	// not compliled
+	ERR_NOT_COMPLILED: "Not Compliled",
 
 	/*
 	 * rpc error
@@ -93,6 +101,13 @@ var gmsgMap = map[int]string{
 	ERR_CRAWLER_NEW: "New Crawler Fail",
 	// pop request fail
 	ERR_REQUEST_POP: "Pop Request Fail",
+
+	/*
+	 * cluster error
+	 */
+
+	// node not found
+	ERR_NODE_NOT_FOUND: "Node Not Found",
 }
 
 func GetErrMsg(errno int) string {

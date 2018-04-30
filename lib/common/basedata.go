@@ -5,6 +5,7 @@ type InputData struct {
 	OutputType  int8
 	IsNeedLogin bool
 	CheckXsrf   bool
+	URI string
 }
 
 type ContextInterface interface {

@@ -3,8 +3,7 @@ package base
 import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
-	"github.com/l-dandelion/crawler_lib/common"
-	"github.com/l-dandelion/crawler_lib/constant"
+	"github.com/l-dandelion/yi-ants-go/lib/common"
 )
 
 // 依赖appconfig里的提供的几个配置 switch.enablehttps
@@ -15,16 +14,19 @@ type BaseController struct {
 	OutMapData map[string]interface{}
 	// 处理过程中出现错误时，错误消息内容保存到这个变量(展示给用户看的)
 	ErrMsg string
+	cName string
+	aName string
+	IsApi bool
 }
 
 // Init generates default values of controller operations.
 func (c *BaseController) Init(ctx *context.Context, controllerName, actionName string, app interface{}) {
 	c.Controller.Init(ctx, controllerName, actionName, app)
-	c.InputData = inputDataPool.Get().(*common.InputData)
-	c.InputData.OutputType = constant.OutputTypeHtml
 	c.TplExt = "tpl"
+	c.InputData = c.initInputData()
 	c.OutMapData = make(map[string]interface{})
 	c.ErrMsg = ""
+	c.TplName = c.cName + "/" + c.aName + "." + c.TplExt
 }
 
 // Finish runs after request function execution.

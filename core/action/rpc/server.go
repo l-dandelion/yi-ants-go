@@ -154,3 +154,65 @@ func (this *RpcServer) SignRequest(req *action.RpcRequest, resp *action.RpcError
 	resp.Result = resp.Yierr == nil
 	return nil
 }
+
+// init a spider
+func (this *RpcServer) InitSpider(req *action.RpcSpiderName, resp *action.RpcError) error {
+	resp.NodeInfo = this.node.GetNodeInfo()
+	resp.Yierr = this.node.InitSpider(req.SpiderName)
+	resp.Result = resp.Yierr == nil
+	return nil
+}
+
+// complile a spider
+func (this *RpcServer) ComplileSpider(req *action.RpcSpiderName, resp *action.RpcError) error {
+	resp.NodeInfo = this.node.GetNodeInfo()
+	resp.Yierr = this.node.ComplileSpider(req.SpiderName)
+	resp.Result = resp.Yierr == nil
+	return nil
+}
+
+//delete a spider
+func (this *RpcServer) DeleteSpider(req *action.RpcSpiderName, resp *action.RpcError) error {
+	resp.NodeInfo = this.node.GetNodeInfo()
+	resp.Yierr = this.node.DeleteSpider(req.SpiderName)
+	resp.Result = resp.Yierr == nil
+	return nil
+}
+
+//get spider status list
+func (this *RpcServer) SpiderStatusList(req *action.RpcBase, resp *action.RpcSpiderStatusList) error {
+	resp.NodeInfo = this.node.GetNodeInfo()
+	resp.Result = true
+	resp.SpiderStatusList = this.node.GetSpiderStatusList()
+	return nil
+}
+
+//get distribute queue size
+func (this *RpcServer) GetDistributeQueueSize(req *action.RpcBase, resp *action.RpcNum) error {
+	resp.NodeInfo = this.node.GetNodeInfo()
+	resp.Result = true
+	resp.Num = this.node.GetDistributeQueueSize()
+	return nil
+}
+
+//get local node info
+func (this *RpcServer) GetNodeInfo(req *action.RpcBase, resp *action.RpcBase) error {
+	resp.NodeInfo = this.node.GetNodeInfo()
+	resp.Result = true
+	return nil
+}
+
+//can statr spider
+func (this *RpcServer) CanInitSpider(req *action.RpcSpiderName, resp *action.RpcError) error {
+	resp.NodeInfo = this.node.GetNodeInfo()
+	resp.Result, resp.Yierr = this.node.CanStartSpider(req.SpiderName)
+	return nil
+}
+
+//get spider status by spider name
+func (this *RpcServer) GetSpiderStatusBySpiderName(req *action.RpcSpiderName, resp *action.RpcSpiderStatus) error {
+	resp.NodeInfo = this.node.GetNodeInfo()
+	resp.SpiderStatus, resp.Yierr = this.node.GetSpiderStatus(req.SpiderName)
+	resp.Result = resp.Yierr == nil
+	return nil
+}
