@@ -8,6 +8,10 @@ const (
 
 	//args error(参数错误)
 	ERR_ARGS = 10001
+	//read file fail
+	ERR_READ_FILE = 10002
+	//gen func
+	ERR_FUNC_GEN = 10003
 
 	/*
 	 * crawl error
@@ -69,6 +73,10 @@ const (
 	ERR_ADD_SPIDER = 50003
 	// scheduler not initilated
 	ERR_SCHEDULER_NOT_INITILATED = 50004
+	// compliling fail
+	ERR_COMPLILE_FAIL = 50005
+	// not compliled
+	ERR_NOT_COMPLILED = 50006
 
 	/*
 	 * rpc error
@@ -93,4 +101,11 @@ const (
 	ERR_CRAWLER_NEW = 70001
 	// pop request fail
 	ERR_REQUEST_POP = 70002
+
+	/*
+	 * cluster error
+	 */
+
+	// node not found
+	ERR_NODE_NOT_FOUND = 80001
 )

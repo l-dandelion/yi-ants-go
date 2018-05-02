@@ -7,10 +7,11 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/node"
 	"github.com/l-dandelion/yi-ants-go/core/spider"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
-	"github.com/l-dandelion/yi-ants-go/lib/library/log"
+	log "github.com/sirupsen/logrus"
 	"net/rpc"
 	"strconv"
 	"time"
+	"fmt"
 )
 
 type RpcClient struct {
@@ -31,7 +32,6 @@ func NewRpcClient(node node.Node, cluster cluster.Cluster) *RpcClient {
 
 //connect to node(ip:port) and return an client
 func (this *RpcClient) Dial(ip string, port int) (*rpc.Client, *constant.YiError) {
-	log.Infof("Local:%s Call Dial(%s, %d)", this.node.GetNodeInfo().Name, ip, port)
 	client, err := rpc.Dial(RPC_TYPE, ip+":"+strconv.Itoa(port))
 	if err != nil {
 		return nil, constant.NewYiErrore(constant.ERR_RPC_CLIENT_DIAL, err)
@@ -110,7 +110,6 @@ func (this *RpcClient) LetMeIn(ip string, port int) *constant.YiError {
 
 // connect node(ip:port) and store
 func (this *RpcClient) Connect(ip string, port int) *constant.YiError {
-	log.Infof("Local: %s Connect to node: %s:%d\n", this.node.GetNodeInfo().Name, ip, port)
 	client, yierr := this.Dial(ip, port)
 	if yierr != nil {
 		return yierr
@@ -132,9 +131,6 @@ func (this *RpcClient) Connect(ip string, port int) *constant.YiError {
 
 //call node.RpcServer.AcceptRequest(req)
 func (this *RpcClient) Distribute(nodeName string, req *data.Request) (yierr *constant.YiError) {
-	if constant.RunMode == "debug" {
-		log.Infof("Distribute NodoName: %s, req: %v", nodeName, req)
-	}
 	if this.node.IsMe(nodeName) {
 		return this.node.AcceptRequest(req)
 	}
@@ -156,9 +152,6 @@ func (this *RpcClient) Distribute(nodeName string, req *data.Request) (yierr *co
 
 //call all node to start spider named spiderName
 func (this *RpcClient) StartSpider(spiderName string) (yierr *constant.YiError) {
-	if constant.RunMode == "debug" {
-		log.Infof("LocalNode: %s, StartSpider(%s)", this.node.GetNodeInfo().Name, spiderName)
-	}
 	nodeInfoList := this.cluster.GetAllNode()
 	for _, nodeInfo := range nodeInfoList {
 		if this.node.IsMe(nodeInfo.Name) {
@@ -272,9 +265,6 @@ func (this *RpcClient) RecoverSpider(spiderName string) (yierr *constant.YiError
 
 //call all node to add spider
 func (this *RpcClient) AddSpider(spider spider.Spider) (yierr *constant.YiError) {
-	if constant.RunMode == "debug" {
-		log.Infof("%v", spider.GetInitReqs()[0])
-	}
 	nodeInfoList := this.cluster.GetAllNode()
 	csp := spider.Copy()
 	yierr = this.node.AddSpider(spider)
@@ -335,4 +325,240 @@ func (this *RpcClient) SignRequest(dreq *data.Request) (yierr *constant.YiError)
 		}
 	}
 	return nil
+}
+
+func (this *RpcClient) InitSpider(spiderName string) (yierr *constant.YiError) {
+	yierr = this.CanWeInitSpider(spiderName)
+	if yierr != nil {
+		return
+	}
+	nodeInfoList := this.cluster.GetAllNode()
+	yierr = this.node.InitSpider(spiderName)
+	if yierr != nil {
+		return
+	}
+	for _, nodeInfo := range nodeInfoList {
+		if !this.node.IsMe(nodeInfo.Name) {
+			go func() {
+				req := &action.RpcSpiderName{
+					SpiderName: spiderName,
+				}
+				req.NodeInfo = this.node.GetNodeInfo()
+				resp := &action.RpcError{}
+				err := this.connMap[nodeInfo.Name].Call("RpcServer.InitSpider", req, resp)
+				if err != nil {
+					yierr = constant.NewYiErrorf(constant.ERR_RPC_CALL,
+						"Init spider fail, Node: %s, spiderName: %s, ERROR: %s", nodeInfo.Name, spiderName, err)
+					log.Error(yierr)
+				}
+				if resp.Yierr != nil {
+					yierr = resp.Yierr
+					log.Errorf("Init spider fail, Node: %s, spiderName: %v, ERROR: %s", nodeInfo.Name, spiderName, yierr)
+				}
+			}()
+		}
+	}
+	return nil
+}
+
+
+func (this *RpcClient) ComplileSpider(spiderName string) (yierr *constant.YiError) {
+	nodeInfoList := this.cluster.GetAllNode()
+	go this.node.ComplileSpider(spiderName)
+	for _, nodeInfo := range nodeInfoList {
+		if !this.node.IsMe(nodeInfo.Name) {
+			go func() {
+				req := &action.RpcSpiderName{
+					SpiderName: spiderName,
+				}
+				req.NodeInfo = this.node.GetNodeInfo()
+				resp := &action.RpcError{}
+				err := this.connMap[nodeInfo.Name].Call("RpcServer.ComplileSpider", req, resp)
+				if err != nil {
+					yierr = constant.NewYiErrorf(constant.ERR_RPC_CALL,
+						"Complile spider fail, Node: %s, spiderName: %s, ERROR: %s", nodeInfo.Name, spiderName, err)
+					log.Error(yierr)
+				}
+				if resp.Yierr != nil {
+					yierr = resp.Yierr
+					log.Errorf("Complile spider fail, Node: %s, spiderName: %v, ERROR: %s", nodeInfo.Name, spiderName, yierr)
+				}
+			}()
+		}
+	}
+	return nil
+}
+
+func (this *RpcClient) DeleteSpider(spiderName string) (yierr *constant.YiError) {
+	nodeInfoList := this.cluster.GetAllNode()
+	yierr = this.node.DeleteSpider(spiderName)
+	if yierr != nil {
+		return
+	}
+	for _, nodeInfo := range nodeInfoList {
+		if !this.node.IsMe(nodeInfo.Name) {
+			go func() {
+				req := &action.RpcSpiderName{
+					SpiderName: spiderName,
+				}
+				req.NodeInfo = this.node.GetNodeInfo()
+				resp := &action.RpcError{}
+				err := this.connMap[nodeInfo.Name].Call("RpcServer.DeleteSpider", req, resp)
+				if err != nil {
+					yierr = constant.NewYiErrorf(constant.ERR_RPC_CALL,
+						"Delete spider fail, Node: %s, spiderName: %s, ERROR: %s", nodeInfo.Name, spiderName, err)
+					log.Error(yierr)
+				}
+				if resp.Yierr != nil {
+					yierr = resp.Yierr
+					log.Errorf("Delete spider fail, Node: %s, spiderName: %v, ERROR: %s", nodeInfo.Name, spiderName, yierr)
+				}
+			}()
+		}
+	}
+	return nil
+}
+
+func (this *RpcClient) SpiderStatusList() (ssl []*spider.SpiderStatus, yierr *constant.YiError) {
+	nodeInfoList := this.cluster.GetAllNode()
+	mssl := []*spider.SpiderStatus{}
+	ssm := make(map[string]*spider.SpiderStatus)
+	for _, nodeInfo := range nodeInfoList {
+		if this.node.IsMe(nodeInfo.Name) {
+			mssl = this.node.GetSpiderStatusList()
+		} else {
+			req := &action.RpcBase{}
+			resp := &action.RpcSpiderStatusList{}
+			err := this.connMap[nodeInfo.Name].Call("RpcServer.SpiderStatusList", req, resp)
+			if err != nil {
+				yierr = constant.NewYiErrorf(constant.ERR_RPC_CALL,
+					"get spider status list fail, Node: %s ERROR: %s", nodeInfo.Name, err)
+				return
+			}
+			mssl = resp.SpiderStatusList
+		}
+		fmt.Println(mssl)
+		for _, ss := range mssl {
+			ssm[ss.Name] = megerSpiderStatus(ssm[ss.Name], ss)
+		}
+	}
+	ssl = []*spider.SpiderStatus{}
+	for _, ss := range ssm {
+		ssl = append(ssl, ss)
+	}
+	return ssl, nil
+}
+
+func (this *RpcClient) GetSpiderStatusListByNodeName(nodeName string) (ssl []*spider.SpiderStatus, yierr *constant.YiError) {
+	if this.node.IsMe(nodeName) {
+		return this.node.GetSpiderStatusList(), nil
+	}
+	req := &action.RpcBase{}
+	resp := &action.RpcSpiderStatusList{}
+	client := this.connMap[nodeName]
+	if client == nil {
+		return nil, constant.NewYiErrorf(constant.ERR_NODE_NOT_FOUND, "Node not found.(NodeName: %s)", nodeName)
+	}
+	err := client.Call("RpcServer.SpiderStatusList", req, resp)
+	if err != nil {
+		yierr = constant.NewYiErrorf(constant.ERR_RPC_CALL,
+			"get spider status list fail, Node: %s ERROR: %s", nodeName, err)
+		return
+	}
+	ssl = resp.SpiderStatusList
+	return
+}
+
+func (this *RpcClient) GetDistributeQueueSize(nodeName string) (total uint64, yierr *constant.YiError) {
+	if this.node.IsMe(nodeName) {
+		return this.node.GetDistributeQueueSize(), nil
+	}
+	client := this.connMap[nodeName]
+	if client == nil {
+		yierr = constant.NewYiErrorf(constant.ERR_NODE_NOT_FOUND, "Node not found.(NodeName: %s)", nodeName)
+		return
+	}
+	req := &action.RpcBase{}
+	resp := &action.RpcNum{}
+	err := client.Call("RpcServer.GetDistributeQueueSize", req, resp)
+	if err != nil {
+		yierr = constant.NewYiErrorf(constant.ERR_RPC_CALL,
+			"get distribute queue size fail, Node: %s ERROR: %s", nodeName, err)
+		return
+	}
+	return resp.Num, nil
+}
+
+func (this *RpcClient) GetNodeInfoByNodeName(nodeName string) (nodeInfo *node.NodeInfo, yierr *constant.YiError) {
+	if this.node.IsMe(nodeName) {
+		return this.node.GetNodeInfo(), nil
+	}
+	client := this.connMap[nodeName]
+	if client == nil {
+		yierr = constant.NewYiErrorf(constant.ERR_NODE_NOT_FOUND, "Node not found.(NodeName: %s)", nodeName)
+		return
+	}
+	req := &action.RpcBase{}
+	resp := &action.RpcBase{}
+	err := client.Call("RpcServer.GetNodeInfo", req, resp)
+	if err != nil {
+		yierr = constant.NewYiErrorf(constant.ERR_RPC_CALL,
+			"get spider status list fail, Node: %s ERROR: %s", nodeName, err)
+		return
+	}
+	return resp.NodeInfo, nil
+}
+
+func (this *RpcClient) CanWeInitSpider(spiderName string) (yierr *constant.YiError) {
+	nodeInfoList := this.cluster.GetAllNode()
+	var ok bool
+	for _, nodeInfo := range nodeInfoList {
+		if this.node.IsMe(nodeInfo.Name) {
+			ok, yierr = this.node.CanStartSpider(spiderName)
+		} else {
+			req := &action.RpcSpiderName{SpiderName:spiderName}
+			resp := &action.RpcError{}
+			err := this.connMap[nodeInfo.Name].Call("RpcServer.CanInitSpider", req, resp)
+			if err != nil {
+				yierr = constant.NewYiErrorf(constant.ERR_RPC_CALL,
+					"Query whether we can init spider fail, Node: %s ERROR: %s", nodeInfo.Name, err)
+				return
+			}
+			ok, yierr = resp.Result, resp.Yierr
+		}
+		if yierr != nil {
+			return
+		}
+		if !ok {
+			return constant.NewYiErrorf(constant.ERR_NOT_COMPLILED, "The spdier is not compiled.(SpiderName: %s, NodeName: %s)", spiderName, nodeInfo.Name)
+		}
+	}
+	return nil
+}
+
+func (this *RpcClient) GetSpiderStatusMapBySpiderName(spiderName string) (spiderStatusMap map[string]*spider.SpiderStatus, yierr *constant.YiError){
+	nodeInfoList := this.cluster.GetAllNode()
+	var spiderStatus *spider.SpiderStatus
+	spiderStatusMap = make(map[string]*spider.SpiderStatus)
+	for _, nodeInfo := range nodeInfoList {
+		if this.node.IsMe(nodeInfo.Name) {
+			spiderStatus, yierr = this.node.GetSpiderStatus(spiderName)
+		} else {
+			req := &action.RpcSpiderName{SpiderName:spiderName}
+			resp := &action.RpcSpiderStatus{}
+			err := this.connMap[nodeInfo.Name].Call("RpcServer.GetSpiderStatusBySpiderName", req, resp)
+			if err != nil {
+				yierr = constant.NewYiErrorf(constant.ERR_RPC_CALL,
+					"Get spider status by spider name fail, Node: %s ERROR: %s", nodeInfo.Name, err)
+				return
+			}
+			yierr = resp.Yierr
+			spiderStatus = resp.SpiderStatus
+		}
+		if yierr != nil {
+			return
+		}
+		spiderStatusMap[nodeInfo.Name] = spiderStatus
+	}
+	return
 }

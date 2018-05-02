@@ -2,6 +2,7 @@ package action
 
 import (
 	"github.com/l-dandelion/yi-ants-go/core/module/data"
+	"github.com/l-dandelion/yi-ants-go/core/node"
 	"github.com/l-dandelion/yi-ants-go/core/spider"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
 	"net/rpc"
@@ -14,6 +15,8 @@ type RpcServer interface {
 type RpcServerCrawl interface {
 	//accept a request by myself
 	AcceptRequest(req *RpcRequest, resp *RpcBase) error
+	//complile a spider
+	ComplileSpider(req *RpcSpiderName, resp *RpcBase) error
 	//start a spider named req.SpiderName by myself
 	StartSpider(req *RpcSpiderName, resp *RpcBase) error
 	//pause a spider named req.SpiderName by myself
@@ -26,11 +29,24 @@ type RpcServerCrawl interface {
 	AddSpider(req RpcSpider, resp *RpcBase) error
 	//sign a reuqest
 	SignRequest(req RpcRequest, resp *RpcError) error
+	//init a spider
+	InitSpider(req *RpcSpiderName, resp *RpcError) error
+	//delete a spider
+	DeleteSpider(req *RpcSpiderName, resp *RpcError) error
+	//get spiders status
+	SpiderStatusList(req *RpcBase, resp *RpcBase) error
+	//get distribute queue size
+	GetDistributeQueueSize(req *RpcBase, resp *RpcNum) error
+	//can start spider
+	CanInitSpider(req *RpcSpiderName, resp *RpcError) error
+	//get spider status by spider name
+	GetSpiderStatusBySpiderName(req *RpcSpiderName, resp *RpcError) error
 }
 
 type RpcServerCluster interface {
 	LetMeIn(req *RpcBase, resp *RpcBase) error
 	GetAllNode(req *RpcBase, resp *RpcNodeInfoList) error
+	GetNodeInfo(req *RpcBase, resp *RpcNodeInfoList) error
 }
 
 type RpcServerAnts interface {
@@ -71,6 +87,24 @@ type RpcClientCrawl interface {
 	AddSpider(spider spider.Spider) *constant.YiError
 	//call all node to sign a request
 	SignRequest(req *data.Request) *constant.YiError
+	//call all node to init a spider
+	InitSpider(spiderName string) *constant.YiError
+	//call all node to complile a spider
+	ComplileSpider(spiderName string) *constant.YiError
+	//call all node to delete a spider
+	DeleteSpider(spiderName string) *constant.YiError
+	//get all spider status from all node
+	SpiderStatusList() ([]*spider.SpiderStatus, *constant.YiError)
+	//get spider status from node named nodeName
+	GetSpiderStatusListByNodeName(nodeName string) ([]*spider.SpiderStatus, *constant.YiError)
+	//get distribute queue size
+	GetDistributeQueueSize(nodeName string) (uint64, *constant.YiError)
+	//get information of node named nodeName
+	GetNodeInfoByNodeName(nodeName string) (*node.NodeInfo, *constant.YiError)
+	//can we start spider
+	CanWeInitSpider(spiderName string) *constant.YiError
+	//get spider status map from all node
+	GetSpiderStatusMapBySpiderName(spiderName string) (map[string]*spider.SpiderStatus, *constant.YiError)
 }
 
 type RpcClientAnts interface {

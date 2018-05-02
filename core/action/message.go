@@ -37,3 +37,19 @@ type RpcNodeInfoList struct {
 	RpcBase
 	NodeInfoList []*node.NodeInfo
 }
+
+type RpcSpiderStatusList struct {
+	RpcBase
+	SpiderStatusList []*spider.SpiderStatus
+}
+
+type RpcNum struct {
+	RpcBase
+	Num uint64
+}
+
+type RpcSpiderStatus struct {
+	RpcBase
+	SpiderStatus *spider.SpiderStatus
+	Yierr *constant.YiError
+}

@@ -9,10 +9,10 @@ import (
 	"fmt"
 )
 
-var path = "temp"
+var path = "../temp"
 
 func GenFuncFromStr(sourceStr, funcName string) (interface{}, error) {
-	fileName := fmt.Sprintf("%d", rand.Uint64()) + ".go"
+	fileName := fmt.Sprintf("%x", rand.Uint64()) + ".go"
 	dirPath := path
 	err := utils.SaveFile(dirPath, fileName, []byte(sourceStr))
 	if err != nil {
@@ -22,7 +22,7 @@ func GenFuncFromStr(sourceStr, funcName string) (interface{}, error) {
 }
 
 func GenFuncFromSource(filePath, funcName string) (interface{}, error) {
-	fileName := fmt.Sprintf("%d", rand.Uint64()) + ".so"
+	fileName := fmt.Sprintf("%x", rand.Uint64()) + ".so"
 	dirPath := path
 	cmd := exec.Command("go", "build", "-o", dirPath + "/" + fileName, "-buildmode=plugin", filePath)
 	out, err := cmd.Output()
