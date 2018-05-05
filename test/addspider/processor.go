@@ -34,5 +34,6 @@ func process(item data.Item) (data.Item, *constant.YiError) {
 }
 
 func GenProcessors() []module.ProcessItem {
+	fmt.Println("fhasjdfhasjkdfhajkshfjkashfjkashfjkash")
 	return []module.ProcessItem{process}
 }

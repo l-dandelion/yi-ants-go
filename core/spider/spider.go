@@ -10,11 +10,14 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/module/local/analyzer"
 	"github.com/l-dandelion/yi-ants-go/core/module/local/downloader"
 	"github.com/l-dandelion/yi-ants-go/core/module/local/pipeline"
+	"github.com/l-dandelion/yi-ants-go/core/parsers"
+	"github.com/l-dandelion/yi-ants-go/core/processors"
+	parsermodel "github.com/l-dandelion/yi-ants-go/core/parsers/model"
+	processormodel "github.com/l-dandelion/yi-ants-go/core/processors/model"
 	"github.com/l-dandelion/yi-ants-go/core/scheduler"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
 	"github.com/l-dandelion/yi-ants-go/lib/library/buffer"
-	log "github.com/sirupsen/logrus"
-	"github.com/l-dandelion/yi-ants-go/lib/library/plugin"
+	"github.com/l-dandelion/yi-ants-go/lib/library/parseurl"
 	"strings"
 	"sync"
 )
@@ -58,9 +61,11 @@ type mySpider struct {
 	RequestArgs         scheduler.RequestArgs
 	DataArgs            scheduler.DataArgs
 	respParsers         []module.ParseResponse
-	itemProccessors     []module.ProcessItem
+	itemProcessors      []module.ProcessItem
 	StrGenParsers       string
 	StrGenProcessors    string
+	ParsersModels       []*parsermodel.Model
+	ProcessorsModels    []*processormodel.Model
 	InitialReqs         []*data.Request
 	StartTime           time.Time
 	EndTime             time.Time
@@ -77,12 +82,13 @@ func New(name string,
 	dataArgs scheduler.DataArgs,
 	initialUrls []string,
 	initialReqs []*data.Request,
-	strGenParsers string,
-	strGenProcessors string) (Spider, *constant.YiError) {
+	parsersModels []*parsermodel.Model,
+	processorsModels []*processormodel.Model,
+) (Spider, *constant.YiError) {
 	spider := &mySpider{
 		Name:             name,
-		StrGenParsers:    strGenParsers,
-		StrGenProcessors: strGenProcessors,
+		ProcessorsModels: processorsModels,
+		ParsersModels:    parsersModels,
 		//RespParsers:     parsers,
 		//ItemProccessors: processors,
 		DataArgs:    dataArgs,
@@ -94,6 +100,7 @@ func New(name string,
 	//}
 	spider.InitialReqs = []*data.Request{}
 	if initialUrls != nil {
+		initialUrls = parseurl.ParseReqUrl(initialUrls, nil)
 		for _, urlStr := range initialUrls {
 			if strings.Index(urlStr, "http") != 0 {
 				urlStr = "http://" + urlStr
@@ -103,9 +110,6 @@ func New(name string,
 				return nil, constant.NewYiErrore(constant.ERR_SPIDER_NEW, err)
 			}
 			req := data.NewRequest(httpReq)
-			if constant.RunMode == "debug" {
-				log.Infof("%v", req)
-			}
 			spider.InitialReqs = append(spider.InitialReqs, req)
 		}
 	}
@@ -140,18 +144,26 @@ func (spider *mySpider) Complile() (yierr *constant.YiError) {
 		}
 		spider.compilingStatusLock.Unlock()
 	}()
-	f, err := plugin.GenFuncFromStr(spider.StrGenParsers, "GenParsers")
-	if err != nil {
-		yierr = constant.NewYiErrorf(constant.ERR_FUNC_GEN, "Gen parsers fail.Err: %s", err)
-		return
+	//f, err := plugin.GenFuncFromStr(spider.StrGenParsers, "GenParsers")
+	//if err != nil {
+	//	yierr = constant.NewYiErrorf(constant.ERR_FUNC_GEN, "Gen parsers fail.Err: %s", err)
+	//	return
+	//}
+	//spider.respParsers = f.(func() []module.ParseResponse)()
+	//f, err = plugin.GenFuncFromStr(spider.StrGenProcessors, "GenProcessors")
+	//if err != nil {
+	//	yierr = constant.NewYiErrorf(constant.ERR_FUNC_GEN, "Gen processors fail.Err: %s", err)
+	//	return
+	//}
+	//spider.itemProccessors = f.(func() []module.ProcessItem)()
+	spider.respParsers, yierr = parsers.GenParsersByModels(spider.ParsersModels)
+	if yierr != nil {
+		return yierr
 	}
-	spider.respParsers = f.(func() []module.ParseResponse)()
-	f, err = plugin.GenFuncFromStr(spider.StrGenProcessors, "GenProcessors")
-	if err != nil {
-		yierr = constant.NewYiErrorf(constant.ERR_FUNC_GEN, "Gen processors fail.Err: %s", err)
-		return
+	spider.itemProcessors, yierr = processors.GenProcessorsByModels(spider.ProcessorsModels)
+	if yierr != nil {
+		return yierr
 	}
-	spider.itemProccessors = f.(func() []module.ProcessItem)()
 	return
 }
 
@@ -177,7 +189,7 @@ func (spider *mySpider) InitSchduler() (yierr *constant.YiError) {
 	if yierr != nil {
 		return yierr
 	}
-	processors := spider.itemProccessors
+	processors := spider.itemProcessors
 	pipeline, yierr := pipeline.New("P1", processors, module.CalculateScoreSimple)
 	moduleArgs := scheduler.ModuleArgs{
 		Downloader: downloader,
