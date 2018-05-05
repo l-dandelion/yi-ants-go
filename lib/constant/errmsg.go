@@ -26,6 +26,12 @@ var gmsgMap = map[int]string{
 	ERR_CRAWL_PIPELINE: "Pipeline Error(条目处理器错误)",
 	//scheduler error(调度器错误)
 	ERR_CRAWL_SCHEDULER: "Scheduler Error(调度器错误)",
+	//get dom fail
+	ERR_CRAWL_GET_DOM: "Get Dom Fail",
+	//get complate url fail
+	ERR_CRAWL_GET_COMPLATE_URL: "Get Complate Url Fail",
+	//new http request fail
+	ERR_CRAWL_NEW_HTTP_REQUEST: "New HTTP Request Fail",
 
 	/*
 	 * module error
@@ -108,6 +114,21 @@ var gmsgMap = map[int]string{
 
 	// node not found
 	ERR_NODE_NOT_FOUND: "Node Not Found",
+
+	/*
+	 * parser
+	 */
+
+	// unsupported model type
+	ERR_UNSUPPORTED_MODEL_TYPE: "Unsupported Model Type",
+	// get parsers source fail
+	ERR_GET_PARSERS_SOURCE: "Get Parsers Source Fail",
+	// get parser fail
+	ERR_GET_PARSERS: "Get Parser Fail",
+	// get processors source fail
+	ERR_GET_PROCESSORS_SOURCE: "Get Processors Source Fail",
+	// get processors fail
+	ERR_GET_PROCESSORS: "Get Processors Fail",
 }
 
 func GetErrMsg(errno int) string {

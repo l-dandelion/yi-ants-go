@@ -17,7 +17,6 @@ const (
 	 * crawl error
 	 * 抓取错误
 	 */
-
 	//downloader error(下载器错误)
 	ERR_CRAWL_DOWNLOADER = 20001
 	//analyzer error(分析器错误)
@@ -26,6 +25,12 @@ const (
 	ERR_CRAWL_PIPELINE = 20003
 	//scheduler error(调度器错误)
 	ERR_CRAWL_SCHEDULER = 20004
+	//get dom fail
+	ERR_CRAWL_GET_DOM = 20005
+	//get complate url fail
+	ERR_CRAWL_GET_COMPLATE_URL = 20006
+	//new http request fail
+	ERR_CRAWL_NEW_HTTP_REQUEST = 20007
 
 	/*
 	 * module error
@@ -108,4 +113,19 @@ const (
 
 	// node not found
 	ERR_NODE_NOT_FOUND = 80001
+
+	/*
+	 * parser/processor
+	 */
+
+	//unsupported model type
+	ERR_UNSUPPORTED_MODEL_TYPE = 90001
+	// get parsers source fail
+	ERR_GET_PARSERS_SOURCE = 90002
+	// get parser fail
+	ERR_GET_PARSERS = 90003
+	// get processors source fail
+	ERR_GET_PROCESSORS_SOURCE = 90004
+	// get processors fail
+	ERR_GET_PROCESSORS = 90005
 )

@@ -21,6 +21,7 @@ type Distributer struct {
 	Node      node.Node
 	MaxThread int
 	pool      *pool.Pool
+	distributeLock sync.RWMutex
 }
 
 func NewDistributer(mnode node.Node, cluster cluster.Cluster, rpcClient action.RpcClientAnts) *Distributer {
@@ -130,6 +131,8 @@ func (this *Distributer) Run() {
 }
 
 func (this *Distributer) Distribute(request *data.Request) {
+	this.distributeLock.Lock()
+	defer this.distributeLock.Unlock()
 	nodeList := this.Cluster.GetAllNode()
 	if this.LastIndex >= len(nodeList) {
 		this.LastIndex = 0
