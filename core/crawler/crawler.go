@@ -429,6 +429,9 @@ func (crawler *myCrawler) FilterRequests(reqs []*data.Request) []*data.Request {
  * Sign requests
  */
 func (crawler *myCrawler) SignRequests(reqs []*data.Request) {
+	if len(reqs) == 0 {
+		return
+	}
 	for _, req := range reqs {
 		sp, yierr := crawler.GetSpider(req.SpiderName())
 		if yierr != nil {

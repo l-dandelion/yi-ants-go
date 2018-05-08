@@ -44,8 +44,8 @@ type RpcSpiderStatusList struct {
 }
 
 type RpcNum struct {
-	RpcBase
 	Num uint64
+	RpcBase
 }
 
 type RpcSpiderStatus struct {
