@@ -90,7 +90,7 @@ func NewDistributer(mnode node.Node, cluster cluster.Cluster, rpcClient action.R
 		RpcClient: rpcClient,
 		Node:      mnode,
 		MaxThread: 10,
-		pool:      pool.NewPool(1),
+		pool:      pool.NewPool(10),
 		scoreMap:  make(map[string]uint64),
 	}
 }

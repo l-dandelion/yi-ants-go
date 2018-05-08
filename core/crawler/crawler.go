@@ -376,7 +376,7 @@ func (crawler *myCrawler) CanStartSpider(spiderName string) (bool, *constant.YiE
  * get score
  */
 func (crawler *myCrawler) GetScore() uint64 {
-	total := uint64(0)
+	total := crawler.distributeQueue.Total()
 	spiderStatusList := crawler.GetSpiderStatusList()
 	for _, ss := range spiderStatusList {
 		if ss.Status != constant.RUNNING_STATUS_STOPPED {
