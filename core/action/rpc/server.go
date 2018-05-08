@@ -238,7 +238,7 @@ func (this *RpcServer) FilterRequests(req *action.RpcRequestList, resp *action.R
 
 //sign requests
 func (this *RpcServer) SignRequests(req *action.RpcRequestList, resp *action.RpcBase) error {
-	this.rpcClient.SignRequests(req.Reqs)
+	this.node.SignRequests(req.Reqs)
 	resp.NodeInfo = this.node.GetNodeInfo()
 	resp.Result = true
 	return nil
