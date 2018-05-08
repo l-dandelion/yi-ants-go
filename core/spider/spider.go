@@ -11,8 +11,8 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/module/local/downloader"
 	"github.com/l-dandelion/yi-ants-go/core/module/local/pipeline"
 	"github.com/l-dandelion/yi-ants-go/core/parsers"
-	"github.com/l-dandelion/yi-ants-go/core/processors"
 	parsermodel "github.com/l-dandelion/yi-ants-go/core/parsers/model"
+	"github.com/l-dandelion/yi-ants-go/core/processors"
 	processormodel "github.com/l-dandelion/yi-ants-go/core/processors/model"
 	"github.com/l-dandelion/yi-ants-go/core/scheduler"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
@@ -62,8 +62,6 @@ type mySpider struct {
 	DataArgs            scheduler.DataArgs
 	respParsers         []module.ParseResponse
 	itemProcessors      []module.ProcessItem
-	StrGenParsers       string
-	StrGenProcessors    string
 	ParsersModels       []*parsermodel.Model
 	ProcessorsModels    []*processormodel.Model
 	InitialReqs         []*data.Request
@@ -335,8 +333,10 @@ func (spider *mySpider) Copy() Spider {
 		DataArgs:    spider.DataArgs,
 		//RespParsers     []module.ParseResponse
 		//ItemProccessors []module.ProcessItem
-		StrGenParsers:    spider.StrGenParsers,
-		StrGenProcessors: spider.StrGenProcessors,
+		//StrGenParsers:    spider.StrGenParsers,
+		//StrGenProcessors: spider.StrGenProcessors,
+		ParsersModels:    spider.ParsersModels,
+		ProcessorsModels: spider.ProcessorsModels,
 		InitialReqs:      spider.InitialReqs,
 		StartTime:        spider.StartTime,
 		EndTime:          spider.EndTime,

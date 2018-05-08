@@ -6,22 +6,81 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/module/data"
 	"github.com/l-dandelion/yi-ants-go/core/node"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
-	log "github.com/sirupsen/logrus"
 	"github.com/l-dandelion/yi-ants-go/lib/library/pool"
+	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
 )
 
+var (
+	InternalTime     = 3 * time.Second
+	MaxDistributeNum = uint64(100)
+)
+
 type Distributer struct {
 	sync.RWMutex
-	Status    int8
-	LastIndex int
-	Cluster   cluster.Cluster
-	RpcClient action.RpcClientAnts
-	Node      node.Node
-	MaxThread int
-	pool      *pool.Pool
+	Status         int8
+	LastIndex      int
+	Cluster        cluster.Cluster
+	RpcClient      action.RpcClientAnts
+	Node           node.Node
+	MaxThread      int
+	pool           *pool.Pool
 	distributeLock sync.RWMutex
+	scoreMap       map[string]uint64
+	scoreMapLock   sync.Mutex
+}
+
+func (this *Distributer) UpdateScore() {
+	nodeInfos := this.Cluster.GetAllNode()
+	for _, ni := range nodeInfos {
+		score, yierr := this.RpcClient.GetNodeScore(ni.Name)
+		if yierr != nil {
+			log.Infof("Update distribute score error: %s", yierr)
+			continue
+		}
+		log.Infof("NodeName: %s Score: %d", ni.Name, score)
+		this.scoreMapLock.Lock()
+		this.scoreMap[ni.Name] = score
+		this.scoreMapLock.Unlock()
+	}
+}
+
+func (this *Distributer) UpdateScoreRun() {
+	for {
+		if this.IsStopping() {
+			this.Lock()
+			defer this.Unlock()
+			this.Status = constant.RUNNING_STATUS_STOPPED
+			break
+		}
+		if this.IsStop() {
+			break
+		}
+		if this.IsPause() {
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		this.UpdateScore()
+		time.Sleep(InternalTime)
+	}
+}
+
+func (this *Distributer) GetBestIndex() int {
+	this.scoreMapLock.Lock()
+	defer this.scoreMapLock.Unlock()
+	index := 0
+	score := this.scoreMap[this.Node.GetNodeInfo().Name]
+	nodeInfos := this.Cluster.GetAllNode()
+	for i, nodeInfo := range nodeInfos {
+		tmp := this.scoreMap[nodeInfo.Name]
+		if index == 0 && tmp < score/2 || index != 0 && tmp < score {
+			index = i
+			score = tmp
+		}
+	}
+	log.Infof("GetBestIndex: %d", index)
+	return index
 }
 
 func NewDistributer(mnode node.Node, cluster cluster.Cluster, rpcClient action.RpcClientAnts) *Distributer {
@@ -32,6 +91,7 @@ func NewDistributer(mnode node.Node, cluster cluster.Cluster, rpcClient action.R
 		Node:      mnode,
 		MaxThread: 10,
 		pool:      pool.NewPool(10),
+		scoreMap:  make(map[string]uint64),
 	}
 }
 
@@ -101,6 +161,11 @@ func (this *Distributer) Start() {
 
 func (this *Distributer) Run() {
 	log.Info("Start distributer:")
+	go this.UpdateScoreRun()
+	go this.DistributeRun()
+}
+
+func (this *Distributer) DistributeRun() {
 	for {
 		if this.IsStopping() {
 			this.Lock()
@@ -115,29 +180,48 @@ func (this *Distributer) Run() {
 			time.Sleep(1 * time.Second)
 			continue
 		}
+		requests, err := this.Node.PopRequests(MaxDistributeNum)
+		if err != nil {
+			log.Errorf("Distribute Error: %s", err)
+			continue
+		}
 		this.pool.Add()
-		go func() {
+		go func(requests []*data.Request) {
 			defer this.pool.Done()
-			request, err := this.Node.PopRequest()
-			if err != nil {
-				log.Errorf("Distribute Error: %s", err)
+			nodeName := this.Distribute()
+			this.scoreMapLock.Lock()
+			this.scoreMap[nodeName] += uint64(len(requests))
+			this.scoreMapLock.Unlock()
+			this.RpcClient.SignRequests(requests)
+			if(len(requests) != 0) {
+				log.Infof("Sign request success. Num: %d", len(requests))
+			}
+			yierr := this.RpcClient.DistributeRequests(nodeName, requests)
+			if yierr != nil {
+				log.Error(yierr)
 				return
 			}
-			this.Distribute(request)
-			this.RpcClient.Distribute(request.NodeName(), request)
-		}()
+			if len(requests) != 0 {
+				log.Infof("Distribute request success. Num: %d", len(requests))
+			}
+		}(requests)
+
+		if uint64(len(requests)) < MaxDistributeNum {
+			time.Sleep(InternalTime)
+		}
 	}
-	log.Info("Stop distributer.")
 }
 
-func (this *Distributer) Distribute(request *data.Request) {
-	this.distributeLock.Lock()
-	defer this.distributeLock.Unlock()
+func (this *Distributer) Distribute() string {
+	index := this.GetBestIndex()
 	nodeList := this.Cluster.GetAllNode()
-	if this.LastIndex >= len(nodeList) {
-		this.LastIndex = 0
+	if index > len(nodeList) {
+		index = 0
 	}
-	nodeName := nodeList[this.LastIndex].Name
-	request.SetNodeName(nodeName)
-	this.LastIndex++
+	nodeName := nodeList[index].Name
+	return nodeName
+}
+
+func (this *Distributer) FilterReqests(reqs []*data.Request) []*data.Request {
+	return this.RpcClient.FilterRequests(reqs)
 }

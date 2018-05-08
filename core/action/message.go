@@ -53,3 +53,8 @@ type RpcSpiderStatus struct {
 	SpiderStatus *spider.SpiderStatus
 	Yierr *constant.YiError
 }
+
+type RpcRequestList struct {
+	RpcBase
+	Reqs []*data.Request
+}

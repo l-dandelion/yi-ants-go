@@ -7,6 +7,7 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/spider"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
 	"github.com/l-dandelion/yi-ants-go/lib/library/buffer"
+	log "github.com/sirupsen/logrus"
 )
 
 // crawler
@@ -31,12 +32,18 @@ type Crawler interface {
 	GetSpiderStatusList() []*spider.SpiderStatus
 	GetDistributeQueueSize() uint64
 	CanStartSpider(string) (bool, *constant.YiError)
+	GetScore() uint64
+	PopRequests(max uint64) ([]*data.Request, *constant.YiError)
+	AcceptRequests(reqs []*data.Request)
+	FilterRequests(reqs []*data.Request) []*data.Request
+	SignRequests(reqs []*data.Request)
 }
 
 type myCrawler struct {
-	distributeQueue buffer.Pool
-	spiderMapLock   sync.RWMutex
-	SpiderMap       map[string]spider.Spider //contains all spiders
+	distributeQueue     buffer.Pool
+	distributeQueueLock sync.Mutex
+	spiderMapLock       sync.RWMutex
+	SpiderMap           map[string]spider.Spider //contains all spiders
 }
 
 /*
@@ -248,8 +255,10 @@ func (crawler *myCrawler) GetSpidersStatus() []*spider.SpiderStatus {
 /*
  * pop a request
  */
-func (Crawler *myCrawler) PopRequest() (*data.Request, *constant.YiError) {
-	req, err := Crawler.distributeQueue.Get()
+func (crawler *myCrawler) PopRequest() (*data.Request, *constant.YiError) {
+	crawler.distributeQueueLock.Lock()
+	defer crawler.distributeQueueLock.Unlock()
+	req, err := crawler.distributeQueue.Get()
 	if err != nil {
 		return nil, constant.NewYiErrore(constant.ERR_REQUEST_POP, err)
 	}
@@ -259,7 +268,6 @@ func (Crawler *myCrawler) PopRequest() (*data.Request, *constant.YiError) {
 /*
  * accept a request
  */
-
 func (crawler *myCrawler) AcceptRequest(req *data.Request) *constant.YiError {
 	sp, yierr := crawler.GetSpider(req.SpiderName())
 	if yierr != nil {
@@ -267,6 +275,23 @@ func (crawler *myCrawler) AcceptRequest(req *data.Request) *constant.YiError {
 	}
 	sp.AcceptedRequest(req)
 	return nil
+}
+
+/*
+ * accept requests
+ */
+func (crawler *myCrawler) AcceptRequests(reqs []*data.Request) {
+	if reqs == nil {
+		return
+	}
+	for _, req := range reqs {
+		go func(req *data.Request) {
+			yierr := crawler.AcceptRequest(req)
+			if yierr != nil {
+				log.Infof("Accept request Error: %s, Req: %v", yierr, req)
+			}
+		}(req)
+	}
 }
 
 /*
@@ -345,4 +370,71 @@ func (crawler *myCrawler) CanStartSpider(spiderName string) (bool, *constant.YiE
 		return false, yierr
 	}
 	return sp.CanStart(), nil
+}
+
+/*
+ * get score
+ */
+func (crawler *myCrawler) GetScore() uint64 {
+	total := crawler.distributeQueue.Total()
+	spiderStatusList := crawler.GetSpiderStatusList()
+	for _, ss := range spiderStatusList {
+		if ss.Status != constant.RUNNING_STATUS_STOPPED {
+			total += uint64(ss.Waiting)
+		}
+	}
+	return total
+}
+
+/*
+ * pop requests
+ */
+func (crawler *myCrawler) PopRequests(max uint64) ([]*data.Request, *constant.YiError) {
+	crawler.distributeQueueLock.Lock()
+	defer crawler.distributeQueueLock.Unlock()
+	total := crawler.distributeQueue.Total()
+	if total > max {
+		total = max
+	}
+	reqs := []*data.Request{}
+	for i := uint64(0); i < total; i++ {
+		req, err := crawler.distributeQueue.Get()
+		if err != nil {
+			return nil, constant.NewYiErrore(constant.ERR_REQUEST_POP, err)
+		}
+		reqs = append(reqs, req.(*data.Request))
+	}
+	return reqs, nil
+}
+
+/*
+ * filter requests
+ */
+func (crawler *myCrawler) FilterRequests(reqs []*data.Request) []*data.Request {
+	result := []*data.Request{}
+	for _, req := range reqs {
+		sp, yierr := crawler.GetSpider(req.SpiderName())
+		if yierr != nil {
+			log.Error("Filter Request: %s", yierr)
+			continue
+		}
+		if !sp.HasRequest(req) {
+			result = append(result, req)
+		}
+	}
+	return result
+}
+
+/*
+ * Sign requests
+ */
+func (crawler *myCrawler) SignRequests(reqs []*data.Request) {
+	for _, req := range reqs {
+		sp, yierr := crawler.GetSpider(req.SpiderName())
+		if yierr != nil {
+			log.Error("Sign Request: %s", yierr)
+			continue
+		}
+		sp.SignRequest(req)
+	}
 }
