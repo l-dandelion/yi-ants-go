@@ -90,7 +90,7 @@ func NewDistributer(mnode node.Node, cluster cluster.Cluster, rpcClient action.R
 		RpcClient: rpcClient,
 		Node:      mnode,
 		MaxThread: 10,
-		pool:      pool.NewPool(10),
+		pool:      pool.NewPool(1),
 		scoreMap:  make(map[string]uint64),
 	}
 }
@@ -188,22 +188,23 @@ func (this *Distributer) DistributeRun() {
 		this.pool.Add()
 		go func(requests []*data.Request) {
 			defer this.pool.Done()
+			if len(requests) == 0 {
+				return
+			}
 			nodeName := this.Distribute()
 			this.scoreMapLock.Lock()
 			this.scoreMap[nodeName] += uint64(len(requests))
 			this.scoreMapLock.Unlock()
+			log.Infof("Start sign request success. Num: %d", len(requests))
 			this.RpcClient.SignRequests(requests)
-			if(len(requests) != 0) {
-				log.Infof("Sign request success. Num: %d", len(requests))
-			}
+			log.Infof("Sign request success. Num: %d", len(requests))
+			log.Infof("Start distribute request. Num: %d", len(requests))
 			yierr := this.RpcClient.DistributeRequests(nodeName, requests)
 			if yierr != nil {
 				log.Error(yierr)
 				return
 			}
-			if len(requests) != 0 {
-				log.Infof("Distribute request success. Num: %d", len(requests))
-			}
+			log.Infof("Distribute request success. Num: %d", len(requests))
 		}(requests)
 
 		if uint64(len(requests)) < MaxDistributeNum {
