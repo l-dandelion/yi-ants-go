@@ -6,6 +6,7 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/spider"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
 	"net/rpc"
+	"github.com/l-dandelion/yi-ants-go/core/crawler"
 )
 
 type RpcServer interface {
@@ -49,6 +50,8 @@ type RpcServerCrawl interface {
 	FilterRequests(req *RpcRequestList, resp *RpcRequestList) error
 	//sign requests
 	SignRequests(req *RpcRequestList, resp *RpcError) error
+	//get crawler summary
+	CrawlerSummary(req *RpcBase, resp *RpcCrawlerSummary) error
 }
 
 type RpcServerCluster interface {
@@ -121,6 +124,10 @@ type RpcClientCrawl interface {
 	GetNodeScore(nodeName string) (uint64, *constant.YiError)
 	//filter requests
 	FilterRequests([]*data.Request) ([]*data.Request)
+	//get crawler summary
+	CrawlerSummary(nodeName string) (*crawler.Summary, *constant.YiError)
+	//get spider status by nodeName and spiderName
+	GetSpiderStatus(nodeName, spiderName string) (*spider.SpiderStatus, *constant.YiError)
 }
 
 type RpcClientAnts interface {

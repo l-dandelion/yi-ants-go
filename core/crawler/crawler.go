@@ -37,6 +37,7 @@ type Crawler interface {
 	AcceptRequests(reqs []*data.Request)
 	FilterRequests(reqs []*data.Request) []*data.Request
 	SignRequests(reqs []*data.Request)
+	CrawlerSummary() *Summary
 }
 
 type myCrawler struct {
@@ -44,6 +45,14 @@ type myCrawler struct {
 	distributeQueueLock sync.Mutex
 	spiderMapLock       sync.RWMutex
 	SpiderMap           map[string]spider.Spider //contains all spiders
+}
+
+type Summary struct {
+	Crawled             int
+	Success             int
+	Running             int
+	Waiting             int
+	DistributeQueueSize int
 }
 
 /*
@@ -440,4 +449,17 @@ func (crawler *myCrawler) SignRequests(reqs []*data.Request) {
 		}
 		sp.SignRequest(req)
 	}
+}
+
+func (crawler *myCrawler) CrawlerSummary() *Summary {
+	summary := &Summary{}
+	ssl := crawler.GetSpiderStatusList()
+	for _, ss := range ssl {
+		summary.Waiting += ss.Waiting
+		summary.Success += ss.Success
+		summary.Running += ss.Running
+		summary.Crawled += ss.Crawled
+	}
+	summary.DistributeQueueSize = int(crawler.distributeQueue.Total())
+	return summary
 }

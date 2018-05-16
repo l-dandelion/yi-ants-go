@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 	"fmt"
+	"github.com/l-dandelion/yi-ants-go/core/crawler"
 )
 
 type RpcClient struct {
@@ -637,4 +638,47 @@ func (this *RpcClient) SignRequests(reqs []*data.Request) {
 			}
 		}
 	}
+}
+
+func (this *RpcClient) CrawlerSummary(nodeName string) (summary *crawler.Summary, yierr *constant.YiError) {
+	if this.node.IsMe(nodeName) {
+		summary = this.node.CrawlerSummary()
+		return
+	}
+	client := this.connMap[nodeName]
+	if client == nil {
+		yierr = constant.NewYiErrorf(constant.ERR_NODE_NOT_FOUND, "Node not found.(NodeName: %s)", nodeName)
+		return
+	}
+	req := &action.RpcBase{}
+	resp := &action.RpcCrawlerSummary{}
+	err := client.Call("RpcServer.CrawlerSummary", req, resp)
+	if err != nil {
+		yierr = constant.NewYiErrorf(constant.ERR_RPC_CALL,
+			"get crawler summary fail, Node: %s ERROR: %s", nodeName, err)
+		return
+	}
+	return resp.Summary, nil
+}
+
+
+func (this *RpcClient) GetSpiderStatus(nodeName, spiderName string) (status *spider.SpiderStatus, yierr *constant.YiError) {
+	if this.node.IsMe(nodeName) {
+		status, yierr = this.node.GetSpiderStatus(spiderName)
+		return
+	}
+	client := this.connMap[nodeName]
+	if client == nil {
+		yierr = constant.NewYiErrorf(constant.ERR_NODE_NOT_FOUND, "Node not found.(NodeName: %s)", nodeName)
+		return
+	}
+	req := &action.RpcSpiderName{SpiderName:spiderName}
+	resp := &action.RpcSpiderStatus{}
+	err := client.Call("RpcServer.GetSpiderStatusBySpiderName", req, resp)
+	if err != nil {
+		yierr = constant.NewYiErrorf(constant.ERR_RPC_CALL,
+			"get spider status fail, Node: %s Spider: %s ERROR: %s", nodeName, spiderName, err)
+		return
+	}
+	return resp.SpiderStatus, nil
 }

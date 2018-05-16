@@ -243,3 +243,11 @@ func (this *RpcServer) SignRequests(req *action.RpcRequestList, resp *action.Rpc
 	resp.Result = true
 	return nil
 }
+
+//get crawler summary
+func (this *RpcServer) CrawlerSumamry(req *action.RpcBase, resp *action.RpcCrawlerSummary) error {
+	resp.Summary = this.node.CrawlerSummary()
+	resp.NodeInfo = this.node.GetNodeInfo()
+	resp.Result = true
+	return nil
+}
