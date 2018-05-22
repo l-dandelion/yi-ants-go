@@ -11,8 +11,8 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/module/local/downloader"
 	"github.com/l-dandelion/yi-ants-go/core/module/local/pipeline"
 	"github.com/l-dandelion/yi-ants-go/core/parsers"
-	"github.com/l-dandelion/yi-ants-go/core/processors"
 	parsermodel "github.com/l-dandelion/yi-ants-go/core/parsers/model"
+	"github.com/l-dandelion/yi-ants-go/core/processors"
 	processormodel "github.com/l-dandelion/yi-ants-go/core/processors/model"
 	"github.com/l-dandelion/yi-ants-go/core/scheduler"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
@@ -33,6 +33,7 @@ type SpiderStatus struct {
 	StartTime       time.Time
 	EndTime         time.Time
 	ComplilingError *constant.YiError
+	CreatedAt       time.Time
 }
 
 type Spider interface {
@@ -62,8 +63,6 @@ type mySpider struct {
 	DataArgs            scheduler.DataArgs
 	respParsers         []module.ParseResponse
 	itemProcessors      []module.ProcessItem
-	StrGenParsers       string
-	StrGenProcessors    string
 	ParsersModels       []*parsermodel.Model
 	ProcessorsModels    []*processormodel.Model
 	InitialReqs         []*data.Request
@@ -72,6 +71,7 @@ type mySpider struct {
 	compilingError      *constant.YiError
 	compilingStatus     int8
 	compilingStatusLock sync.Mutex
+	CreatedAt           time.Time
 }
 
 /*
@@ -94,6 +94,7 @@ func New(name string,
 		DataArgs:    dataArgs,
 		RequestArgs: requestArgs,
 	}
+	spider.CreatedAt = time.Now()
 	//yierr := spider.initSchduler()
 	//if yierr != nil {
 	//	return nil, yierr
@@ -307,6 +308,7 @@ func (spider *mySpider) SpiderStatus() *SpiderStatus {
 		Waiting:         int(summary.ReqBufferPool.Total),
 		StartTime:       spider.StartTime,
 		EndTime:         spider.EndTime,
+		CreatedAt:       spider.CreatedAt,
 	}
 }
 
@@ -335,11 +337,14 @@ func (spider *mySpider) Copy() Spider {
 		DataArgs:    spider.DataArgs,
 		//RespParsers     []module.ParseResponse
 		//ItemProccessors []module.ProcessItem
-		StrGenParsers:    spider.StrGenParsers,
-		StrGenProcessors: spider.StrGenProcessors,
+		//StrGenParsers:    spider.StrGenParsers,
+		//StrGenProcessors: spider.StrGenProcessors,
+		ParsersModels:    spider.ParsersModels,
+		ProcessorsModels: spider.ProcessorsModels,
 		InitialReqs:      spider.InitialReqs,
 		StartTime:        spider.StartTime,
 		EndTime:          spider.EndTime,
+		CreatedAt:        spider.CreatedAt,
 	}
 }
 
@@ -356,4 +361,21 @@ func (spider *mySpider) CanStart() bool {
 	spider.compilingStatusLock.Lock()
 	defer spider.compilingStatusLock.Unlock()
 	return spider.compilingStatus == constant.COMPLILING_STATUS_COMPLILED
+}
+
+
+//合并不同节点的爬虫信息
+func megerSpiderStatus(a *SpiderStatus, b *SpiderStatus) *SpiderStatus {
+	if a == nil {
+		return b
+	}
+	if b.CompilingStatus != constant.COMPLILING_STATUS_COMPLILED {
+		a.CompilingStatus = b.CompilingStatus
+		a.ComplilingError = b.ComplilingError
+	}
+	a.Crawled += b.Crawled
+	a.Running += b.Running
+	a.Success += b.Success
+	a.Waiting += b.Waiting
+	return a
 }

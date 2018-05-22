@@ -35,14 +35,14 @@ type Pool interface {
 
 // myPool 代表数据缓冲池接口的实现类型。
 type myPool struct {
+	// total 代表池中数据的总数。
+	total uint64
 	// bufferCap 代表缓冲器的统一容量。
 	bufferCap uint32
 	// maxBufferNumber 代表缓冲器的最大数量。
 	maxBufferNumber uint32
 	// bufferNumber 代表缓冲器的实际数量。
 	bufferNumber uint32
-	// total 代表池中数据的总数。
-	total uint64
 	// bufCh 代表存放缓冲器的通道。
 	bufCh chan Buffer
 	// closed 代表缓冲池的关闭状态：0-未关闭；1-已关闭。

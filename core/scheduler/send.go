@@ -52,7 +52,7 @@ func (sched *myScheduler) sendReq(req *data.Request) bool {
 			if err := sched.distributeQeueu.Put(req); err != nil {
 				log.Warnln("The distribute buffer pool was closed. Ignore request sending.")
 			}
-			if constant.RunMode == "debug" {
+			if constant.RunMode == "dev" {
 				log.Infof("Send req distribute, %v Size: %d", req, sched.distributeQeueu.Total())
 			}
 		}(req)

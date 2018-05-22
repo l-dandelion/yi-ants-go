@@ -6,6 +6,7 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/spider"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
 	"net/rpc"
+	"github.com/l-dandelion/yi-ants-go/core/crawler"
 )
 
 type RpcServer interface {
@@ -41,6 +42,16 @@ type RpcServerCrawl interface {
 	CanInitSpider(req *RpcSpiderName, resp *RpcError) error
 	//get spider status by spider name
 	GetSpiderStatusBySpiderName(req *RpcSpiderName, resp *RpcError) error
+	//get node score
+	GetNodeScore(req *RpcBase, resp *RpcNum) error
+	//accept requests by myself
+	AcceptRequests(req *RpcRequestList, resp *RpcBase) error
+	//filter requests
+	FilterRequests(req *RpcRequestList, resp *RpcRequestList) error
+	//sign requests
+	SignRequests(req *RpcRequestList, resp *RpcError) error
+	//get crawler summary
+	CrawlerSummary(req *RpcBase, resp *RpcCrawlerSummary) error
 }
 
 type RpcServerCluster interface {
@@ -75,6 +86,8 @@ type RpcClientCluster interface {
 type RpcClientCrawl interface {
 	//call node.RpcServer.AcceptRequest(req)
 	Distribute(nodeName string, req *data.Request) *constant.YiError
+	//call node.RpcServer.AcceptRequests(req)
+	DistributeRequests(nodeName string, reqs []*data.Request) *constant.YiError
 	//call all node to start spider named spiderName
 	StartSpider(spiderName string) *constant.YiError
 	//call all node to stop spider named spiderName
@@ -87,6 +100,8 @@ type RpcClientCrawl interface {
 	AddSpider(spider spider.Spider) *constant.YiError
 	//call all node to sign a request
 	SignRequest(req *data.Request) *constant.YiError
+	//call all node to sign requests
+	SignRequests(reqs []*data.Request)
 	//call all node to init a spider
 	InitSpider(spiderName string) *constant.YiError
 	//call all node to complile a spider
@@ -105,6 +120,14 @@ type RpcClientCrawl interface {
 	CanWeInitSpider(spiderName string) *constant.YiError
 	//get spider status map from all node
 	GetSpiderStatusMapBySpiderName(spiderName string) (map[string]*spider.SpiderStatus, *constant.YiError)
+	//get node score
+	GetNodeScore(nodeName string) (uint64, *constant.YiError)
+	//filter requests
+	FilterRequests([]*data.Request) ([]*data.Request)
+	//get crawler summary
+	CrawlerSummary(nodeName string) (*crawler.Summary, *constant.YiError)
+	//get spider status by nodeName and spiderName
+	GetSpiderStatus(nodeName, spiderName string) (*spider.SpiderStatus, *constant.YiError)
 }
 
 type RpcClientAnts interface {

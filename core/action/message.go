@@ -5,6 +5,7 @@ import (
 	"github.com/l-dandelion/yi-ants-go/core/node"
 	"github.com/l-dandelion/yi-ants-go/core/spider"
 	"github.com/l-dandelion/yi-ants-go/lib/constant"
+	"github.com/l-dandelion/yi-ants-go/core/crawler"
 )
 
 type RpcBase struct {
@@ -44,12 +45,22 @@ type RpcSpiderStatusList struct {
 }
 
 type RpcNum struct {
-	RpcBase
 	Num uint64
+	RpcBase
 }
 
 type RpcSpiderStatus struct {
 	RpcBase
 	SpiderStatus *spider.SpiderStatus
 	Yierr *constant.YiError
+}
+
+type RpcRequestList struct {
+	RpcBase
+	Reqs []*data.Request
+}
+
+type RpcCrawlerSummary struct {
+	RpcBase
+	Summary *crawler.Summary
 }

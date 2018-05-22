@@ -211,3 +211,43 @@ func (this *RpcServer) GetSpiderStatusBySpiderName(req *action.RpcSpiderName, re
 	resp.Result = resp.Yierr == nil
 	return nil
 }
+
+//get node score
+func (this *RpcServer) GetNodeScore(req *action.RpcBase, resp *action.RpcNum) error {
+	resp.Num = this.node.GetScore()
+	resp.NodeInfo = this.node.GetNodeInfo()
+	resp.Result = true
+	return nil
+}
+
+//accept requests
+func (this *RpcServer) AcceptRequests(req *action.RpcRequestList, resp *action.RpcBase) error {
+	this.node.AcceptRequests(req.Reqs)
+	resp.NodeInfo = this.node.GetNodeInfo()
+	resp.Result = true
+	return nil
+}
+
+//filter requests
+func (this *RpcServer) FilterRequests(req *action.RpcRequestList, resp *action.RpcRequestList) error {
+	resp.Reqs = this.node.FilterRequests(req.Reqs)
+	resp.NodeInfo = this.node.GetNodeInfo()
+	resp.Result = true
+	return nil
+}
+
+//sign requests
+func (this *RpcServer) SignRequests(req *action.RpcRequestList, resp *action.RpcBase) error {
+	this.node.SignRequests(req.Reqs)
+	resp.NodeInfo = this.node.GetNodeInfo()
+	resp.Result = true
+	return nil
+}
+
+//get crawler summary
+func (this *RpcServer) CrawlerSumamry(req *action.RpcBase, resp *action.RpcCrawlerSummary) error {
+	resp.Summary = this.node.CrawlerSummary()
+	resp.NodeInfo = this.node.GetNodeInfo()
+	resp.Result = true
+	return nil
+}

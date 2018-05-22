@@ -10,14 +10,14 @@ import (
  * implementation of interface ModuleInternal
  */
 type myModule struct {
-	mid             module.MID            // id of module
-	addr            string                // network address of module
 	score           uint64                // score of module
-	scoreCalculator module.CalculateScore // score calculator
 	calledCount     uint64                // called count
 	acceptedCount   uint64                // accepted count
 	completedCount  uint64                // completed count
 	handlingNumber  uint64                // handling number
+	mid             module.MID            // id of module
+	addr            string                // network address of module
+	scoreCalculator module.CalculateScore // score calculator
 }
 
 /*
