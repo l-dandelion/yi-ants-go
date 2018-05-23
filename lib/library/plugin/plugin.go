@@ -1,30 +1,33 @@
 package plugin
 
 import (
-	"github.com/l-dandelion/yi-ants-go/lib/utils"
-	"os/exec"
 	"errors"
-	"plugin"
-	"math/rand"
 	"fmt"
+	"github.com/l-dandelion/yi-ants-go/lib/utils"
+	"math/rand"
+	"os"
+	"os/exec"
+	"plugin"
 )
 
-var path = "./temp"
+var path = "./"
 
 func GenFuncFromStr(sourceStr, funcName string) (interface{}, error) {
 	fileName := fmt.Sprintf("%x", rand.Uint64()) + ".go"
+
 	dirPath := path
 	err := utils.SaveFile(dirPath, fileName, []byte(sourceStr))
 	if err != nil {
 		return nil, err
 	}
+	defer os.Remove(fileName)
 	return GenFuncFromSource(dirPath+"/"+fileName, funcName)
 }
 
 func GenFuncFromSource(filePath, funcName string) (interface{}, error) {
 	fileName := fmt.Sprintf("%x", rand.Uint64()) + ".so"
 	dirPath := path
-	cmd := exec.Command("go", "build", "-o", dirPath + "/" + fileName, "-buildmode=plugin", filePath)
+	cmd := exec.Command("go", "build", "-o", dirPath+"/"+fileName, "-buildmode=plugin", filePath)
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err
@@ -32,7 +35,8 @@ func GenFuncFromSource(filePath, funcName string) (interface{}, error) {
 	if string(out) != "" {
 		return nil, errors.New(string(out))
 	}
-	p, err := plugin.Open(dirPath+"/"+fileName)
+	defer os.Remove(fileName)
+	p, err := plugin.Open(dirPath + "/" + fileName)
 	if err != nil {
 		return nil, err
 	}
