@@ -55,6 +55,8 @@ type Module interface {
 type Downloader interface {
 	Module                                              // inherit from module
 	Download(req *data.Request) (*data.Response, *constant.YiError) // download according to the request and return the response
+	Add()
+	Done()
 }
 
 /*

@@ -28,9 +28,10 @@ func (sched *myScheduler) download() {
 				log.Warnln("The request buffer pool was closed. Break request reception.")
 				return
 			}
-
+			sched.downloader.Add()
 			downloaderPool.Add()
 			go func(datum interface{}) {
+				defer sched.downloader.Done()
 				defer downloaderPool.Done()
 				req, ok := datum.(*data.Request)
 				if !ok {

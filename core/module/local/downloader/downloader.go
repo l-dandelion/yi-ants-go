@@ -34,7 +34,7 @@ func New(
 	return &myDownloader{
 		ModuleInternal: moduleBase,
 		httpClient:     client,
-		downloaderPool: pool.NewPool(maxThread),
+		Pool:           *pool.NewPool(maxThread),
 	}, nil
 }
 
@@ -44,15 +44,13 @@ func New(
 type myDownloader struct {
 	stub.ModuleInternal              //module internal instance
 	httpClient          *http.Client //http client for downloading
-	downloaderPool      *pool.Pool
+	pool.Pool
 }
 
 /*
  * download according to request, return a response if success, or an error return
  */
 func (downloader *myDownloader) Download(req *data.Request) (*data.Response, *constant.YiError) {
-	downloader.downloaderPool.Add()
-	defer downloader.downloaderPool.Done()
 	downloader.IncrHandlingNumber()
 	defer downloader.DecrHandlingNumber()
 	downloader.IncrCalledCount()
