@@ -18,7 +18,7 @@ func GetSourceParsersFromModel(model *model.Model) ([]module.ParseResponse, *con
 	}
 	genFunc, ok := f.(func() []module.ParseResponse)
 	if !ok {
-		return nil, constant.NewYiErrorf(constant.ERR_GET_PARSERS, "Can't convert f to func()[]modeule.ParseResponse")
+		return nil, constant.NewYiErrorf(constant.ERR_GET_PARSERS, "Can't convert f to func()[]module.ParseResponse")
 	}
 	result := genFunc()
 	return result, nil

@@ -9,7 +9,7 @@ import (
 	"fmt"
 )
 
-var path = "../temp"
+var path = "./temp"
 
 func GenFuncFromStr(sourceStr, funcName string) (interface{}, error) {
 	fileName := fmt.Sprintf("%x", rand.Uint64()) + ".go"
