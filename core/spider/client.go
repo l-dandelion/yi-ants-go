@@ -9,16 +9,15 @@ import (
 func genHTTPClient() *http.Client {
 	return &http.Client{
 		Transport: &http.Transport{
-			DialContext: (&net.Dialer{
-				Timeout:   10 * time.Second,
-				KeepAlive: 10 * time.Second,
-				DualStack: true,
-			}).DialContext,
-			MaxIdleConns:          100,
-			MaxIdleConnsPerHost:   5,
-			IdleConnTimeout:       10 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
+			Dial: func(netw, addr string) (net.Conn, error) {
+				deadline := time.Now().Add(15 * time.Second)
+				c, err := net.DialTimeout(netw, addr, time.Second*15)
+				if err != nil {
+					return nil, err
+				}
+				c.SetDeadline(deadline)
+				return c, nil
+			},
 		},
 	}
 }
