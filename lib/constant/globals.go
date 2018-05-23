@@ -5,5 +5,5 @@ var (
 	RunMode string = "prod"
 
 	//max thread
-	MaxThread = 10
+	MaxThread = 50
 )

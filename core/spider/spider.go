@@ -72,6 +72,7 @@ type mySpider struct {
 	compilingStatus     int8
 	compilingStatusLock sync.Mutex
 	CreatedAt           time.Time
+	MaxThread           int
 }
 
 /*
@@ -84,6 +85,7 @@ func New(name string,
 	initialReqs []*data.Request,
 	parsersModels []*parsermodel.Model,
 	processorsModels []*processormodel.Model,
+	maxThread int,
 ) (Spider, *constant.YiError) {
 	spider := &mySpider{
 		Name:             name,
@@ -93,6 +95,7 @@ func New(name string,
 		//ItemProccessors: processors,
 		DataArgs:    dataArgs,
 		RequestArgs: requestArgs,
+		MaxThread:   maxThread,
 	}
 	spider.CreatedAt = time.Now()
 	//yierr := spider.initSchduler()
@@ -181,7 +184,7 @@ func (spider *mySpider) InitSchduler() (yierr *constant.YiError) {
 
 	sched := scheduler.New(spider.Name)
 	spider.Scheduler = sched
-	downloader, yierr := downloader.New("D1", genHTTPClient(), module.CalculateScoreSimple)
+	downloader, yierr := downloader.New("D1", genHTTPClient(), module.CalculateScoreSimple, spider.MaxThread)
 	if yierr != nil {
 		return yierr
 	}
@@ -362,7 +365,6 @@ func (spider *mySpider) CanStart() bool {
 	defer spider.compilingStatusLock.Unlock()
 	return spider.compilingStatus == constant.COMPLILING_STATUS_COMPLILED
 }
-
 
 //合并不同节点的爬虫信息
 func megerSpiderStatus(a *SpiderStatus, b *SpiderStatus) *SpiderStatus {
