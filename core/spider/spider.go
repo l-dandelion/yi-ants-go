@@ -348,6 +348,7 @@ func (spider *mySpider) Copy() Spider {
 		StartTime:        spider.StartTime,
 		EndTime:          spider.EndTime,
 		CreatedAt:        spider.CreatedAt,
+		MaxThread:        spider.MaxThread,
 	}
 }
 
